@@ -18,9 +18,12 @@ from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
+    validates,
 )
 
+from app.core import validators
 from app.models.Base import Base
+from app.security.password import verify_password, hash_password
 from app.security.utils import generate_secure_token
 
 
@@ -74,6 +77,34 @@ class UserModel(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+
+    def __repr__(self):
+        return f"<UserModel(id={self.id}, email={self.email}, is_active={self.is_active})>"
+
+    def has_group(self, group_name: UserGroupEnum) -> bool:
+        return self.group.name == group_name
+
+    @classmethod
+    def create(cls, email: str, raw_password: str, group_id: int | Mapped[int]) -> "UserModel":
+        user = cls(email=email, group_id=group_id)
+        user.password = raw_password
+        return user
+
+    @property
+    def password(self) -> None:
+        raise AttributeError("Password is write-only. Use the setter to set the password.")
+
+    @password.setter
+    def password(self, raw_password: str) -> None:
+        validators.validate_password_strength(raw_password)
+        self._hashed_password = hash_password(raw_password)
+
+    def verify_password(self, raw_password: str) -> bool:
+        return verify_password(raw_password, self._hashed_password)
+
+    @validates("email")
+    def validate_email(self, key, value):
+        return validators.validate_email(value.lower())
 
 
 class UserProfileModel(Base):
