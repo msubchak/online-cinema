@@ -1,1 +1,1 @@
-from accounts import router as accounts_router
+from app.routes.accounts import router as accounts_router

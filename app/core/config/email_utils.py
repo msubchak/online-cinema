@@ -1,7 +1,9 @@
 import os
 
+from django.conf import Settings
 from fastapi import Depends
 
+from app.core.config.settings import BaseAppSettings, TestingSettings
 from app.core.notifications.emails import EmailSender
 from app.core.notifications.interfaces import EmailSenderInterface
 
