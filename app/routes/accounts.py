@@ -1,14 +1,27 @@
+from datetime import datetime, timezone
+from typing import cast
+
 from fastapi import APIRouter, status, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from app.core.config.email_utils import get_accounts_email_notificator
 from app.core.database import get_db
 from app.core.notifications.interfaces import EmailSenderInterface
-from app.models.accounts import UserModel, UserGroupEnum, ActivationTokenModel, UserGroupModel
-from app.schemas.accounts import UserRegistrationResponseSchema, UserRegistrationRequestSchema
-
+from app.models.accounts import (
+    UserModel,
+    UserGroupEnum,
+    ActivationTokenModel,
+    UserGroupModel
+)
+from app.schemas.accounts import (
+    UserRegistrationResponseSchema,
+    UserRegistrationRequestSchema,
+    MessageResponseSchema,
+    UserActivationRequestSchema
+)
 
 router = APIRouter()
 
@@ -73,3 +86,49 @@ async def register_user(
         ) from e
     else:
         return UserRegistrationResponseSchema.model_validate(new_user)
+
+
+@router.post(
+    "/activate/",
+    response_model=MessageResponseSchema,
+    summary="Activate a user",
+    description="Activate a user's account using their email and activation token.",
+    status_code=status.HTTP_200_OK,
+)
+async def activate_account(
+        activation_data: UserActivationRequestSchema,
+        db: AsyncSession = Depends(get_db),
+) -> MessageResponseSchema:
+    stmt = (
+        select(ActivationTokenModel)
+        .options(joinedload(ActivationTokenModel.user))
+        .join(UserModel)
+        .where(
+            UserModel.email == activation_data.email,
+            ActivationTokenModel.token == activation_data.token
+        )
+    )
+    result = await db.execute(stmt)
+    token_record = result.scalars().first()
+
+    now_utc = datetime.now(timezone.utc)
+    if not token_record or cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc) < now_utc:
+        if token_record:
+            await db.delete(token_record)
+            await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired activation token."
+        )
+
+    user = token_record.user
+    if user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User account is already active."
+        )
+    user.is_active = True
+    await db.delete(token_record)
+    await db.commit()
+
+    return MessageResponseSchema(message="User account activated successfully.")

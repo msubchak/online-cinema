@@ -33,3 +33,12 @@ class UserRegistrationResponseSchema(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class MessageResponseSchema(BaseModel):
+    message: str
+
+
+class UserActivationRequestSchema(BaseEmailPasswordSchema):
+    email: EmailStr
+    token: str

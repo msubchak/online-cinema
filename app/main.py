@@ -7,6 +7,6 @@ app = FastAPI(
     description="API for managing movies, users, and orders in an online cinema."
 )
 
-api_version_prefix = "api/v1"
+api_version_prefix = "/api/v1"
 
 app.include_router(accounts_router, prefix=api_version_prefix)

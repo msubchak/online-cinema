@@ -1,6 +1,6 @@
 import os
 
-from django.conf import Settings
+from app.core.config.settings import Settings
 from fastapi import Depends
 
 from app.core.config.settings import BaseAppSettings, TestingSettings
