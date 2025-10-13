@@ -42,3 +42,13 @@ class MessageResponseSchema(BaseModel):
 class UserActivationRequestSchema(BaseEmailPasswordSchema):
     email: EmailStr
     token: str
+
+
+class UserLoginRequestSchema(BaseEmailPasswordSchema):
+    pass
+
+
+class UserLoginResponseSchema(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
