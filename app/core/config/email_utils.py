@@ -6,6 +6,8 @@ from fastapi import Depends
 from app.core.config.settings import BaseAppSettings, TestingSettings
 from app.core.notifications.emails import EmailSender
 from app.core.notifications.interfaces import EmailSenderInterface
+from app.security.interfaces import JWTAuthManagerInterface
+from app.security.token_manager import JWTAuthManager
 
 
 def get_settings() -> BaseAppSettings:
@@ -29,4 +31,12 @@ def get_accounts_email_notificator(
         activation_complete_email_template_name=settings.ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME,
         password_email_template_name=settings.PASSWORD_RESET_TEMPLATE_NAME,
         password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME
+    )
+
+
+def get_jwt_auth_manager(settings: BaseAppSettings = Depends(get_settings)) -> JWTAuthManagerInterface:
+    return JWTAuthManager(
+        secret_key_access=settings.SECRET_KEY_ACCESS,
+        secret_key=settings.SECRET_KEY_REFRESH,
+        algorithm=settings.JWT_SIGNING_ALGORITHM,
     )
