@@ -17,12 +17,15 @@ from app.models.accounts import (
     ActivationTokenModel,
     UserGroupModel, RefreshTokenModel
 )
+from app.core import accounts_validators
 from app.schemas.accounts import (
     UserRegistrationResponseSchema,
     UserRegistrationRequestSchema,
     MessageResponseSchema,
-    UserActivationRequestSchema, UserLoginResponseSchema, UserLoginRequestSchema, UserLogoutRequestSchema
+    UserActivationRequestSchema, UserLoginResponseSchema, UserLoginRequestSchema, UserLogoutRequestSchema,
+    UserChangePasswordRequestSchema
 )
+from app.security.auth_dependencies import get_current_user
 from app.security.interfaces import JWTAuthManagerInterface
 
 router = APIRouter()
@@ -216,3 +219,44 @@ async def logout_user(
     await db.commit()
 
     return MessageResponseSchema(message="User logged out successfully.")
+
+
+@router.post(
+    "/change-password/",
+    response_model=MessageResponseSchema,
+    summary="Change a user's password",
+    description="Change a user's password.",
+    status_code=status.HTTP_200_OK,
+)
+async def change_password(
+        change_pass_data: UserChangePasswordRequestSchema,
+        db: AsyncSession = Depends(get_db),
+        current_user: UserModel = Depends(get_current_user)
+) -> MessageResponseSchema:
+    stmt = select(UserModel).where(UserModel.id == current_user.id)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found."
+        )
+
+    if not user.verify_password(change_pass_data.old_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid old password."
+        )
+
+    try:
+        user.password = change_pass_data.new_password
+        await db.commit()
+    except SQLAlchemyError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while processing the request."
+        )
+
+    return MessageResponseSchema(message="Password changed successfully.")

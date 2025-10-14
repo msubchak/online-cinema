@@ -40,7 +40,6 @@ class MessageResponseSchema(BaseModel):
 
 
 class UserActivationRequestSchema(BaseEmailPasswordSchema):
-    email: EmailStr
     token: str
 
 
@@ -56,3 +55,13 @@ class UserLoginResponseSchema(BaseModel):
 
 class UserLogoutRequestSchema(BaseModel):
     refresh_token: str
+
+
+class UserChangePasswordRequestSchema(BaseModel):
+    old_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, value):
+        return accounts_validators.validate_password_strength(value)
