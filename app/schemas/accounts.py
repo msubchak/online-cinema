@@ -74,3 +74,12 @@ class PasswordResetRequestSchema(BaseModel):
 class PasswordResetCompleteRequestSchema(BaseModel):
     token: str
     email: EmailStr
+
+
+class TokenRefreshRequestSchema(BaseModel):
+    token: str
+
+
+class TokenRefreshResponseSchema(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
