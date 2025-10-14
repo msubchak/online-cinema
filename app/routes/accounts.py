@@ -23,7 +23,7 @@ from app.schemas.accounts import (
     UserRegistrationRequestSchema,
     MessageResponseSchema,
     UserActivationRequestSchema, UserLoginResponseSchema, UserLoginRequestSchema, UserLogoutRequestSchema,
-    UserChangePasswordRequestSchema, PasswordResetRequestSchema
+    UserChangePasswordRequestSchema, PasswordResetRequestSchema, PasswordResetCompleteRequestSchema
 )
 from app.security.auth_dependencies import get_current_user
 from app.security.interfaces import JWTAuthManagerInterface
@@ -300,3 +300,69 @@ async def request_password_reset_token(
     return MessageResponseSchema(
         message="Password reset email sent successfully."
     )
+
+
+@router.post(
+    "/reset-password/complete/",
+    response_model=MessageResponseSchema,
+    summary="Reset a user's password",
+    description="Reset a user's password if a valid token is provided",
+    status_code=status.HTTP_200_OK,
+)
+async def reset_password(
+        data: PasswordResetCompleteRequestSchema,
+        background_tasks: BackgroundTasks,
+        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+        db: AsyncSession = Depends(get_db),
+) -> MessageResponseSchema:
+    stmt = select(UserModel).where(UserModel.email == data.email)
+    result = await db.execute(stmt)
+    user = result.scalars().one_or_none()
+
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email or token."
+        )
+
+    stmt = select(PasswordResetTokenModel).filter_by(user_id=user.id)
+    result = await db.execute(stmt)
+    token_record = result.scalars().first()
+
+    if not token_record or token_record.token != data.token:
+        if token_record:
+            await db.delete(token_record)
+            await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email or token."
+        )
+
+    expires_at = cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        await db.delete(token_record)
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email or token."
+        )
+
+    try:
+        user.set_password(data.password)
+        await db.delete(token_record)
+        await db.commit()
+    except SQLAlchemyError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while resetting the password."
+        )
+
+    login_link = "https://localhost:8000/api/v1/accounts/login"
+    background_tasks.add_task(
+        email_sender.send_password_reset_complete_email,
+        user.email,
+        login_link
+    )
+
+    return MessageResponseSchema(message="Password reset successfully.")

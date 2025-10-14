@@ -69,3 +69,8 @@ class UserChangePasswordRequestSchema(BaseModel):
 
 class PasswordResetRequestSchema(BaseModel):
     email: EmailStr
+
+
+class PasswordResetCompleteRequestSchema(BaseModel):
+    token: str
+    email: EmailStr
