@@ -1,6 +1,7 @@
 from pydantic import BaseModel, field_validator, EmailStr
 
 from app.core import accounts_validators
+from app.models.accounts import UserGroupEnum
 
 
 class BaseEmailPasswordSchema(BaseModel):
@@ -83,3 +84,8 @@ class TokenRefreshRequestSchema(BaseModel):
 class TokenRefreshResponseSchema(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class ChangeUserGroupRequestSchema(BaseModel):
+    email: EmailStr
+    new_group: UserGroupEnum

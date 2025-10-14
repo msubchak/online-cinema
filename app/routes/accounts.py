@@ -25,9 +25,9 @@ from app.schemas.accounts import (
     MessageResponseSchema,
     UserActivationRequestSchema, UserLoginResponseSchema, UserLoginRequestSchema, UserLogoutRequestSchema,
     UserChangePasswordRequestSchema, PasswordResetRequestSchema, PasswordResetCompleteRequestSchema,
-    TokenRefreshResponseSchema, TokenRefreshRequestSchema
+    TokenRefreshResponseSchema, TokenRefreshRequestSchema, ChangeUserGroupRequestSchema
 )
-from app.security.auth_dependencies import get_current_user
+from app.security.auth_dependencies import get_current_user, admin_required
 from app.security.interfaces import JWTAuthManagerInterface
 
 router = APIRouter()
@@ -412,3 +412,54 @@ async def refresh_access_token(
     new_access_token = jwt_manager.create_access_token({"user_id": user_id})
 
     return TokenRefreshResponseSchema(access_token=new_access_token)
+
+
+@router.post(
+    "/admin/change-user-group/",
+    response_model=MessageResponseSchema,
+    summary="Change user group",
+    description="Change user group",
+    status_code=status.HTTP_200_OK,
+)
+async def change_user_group(
+        data: ChangeUserGroupRequestSchema,
+        db: AsyncSession = Depends(get_db),
+        admin_user: UserModel = Depends(admin_required)
+) -> MessageResponseSchema:
+    stmt = select(UserModel).where(UserModel.email == data.email)
+    result = await db.execute(stmt)
+    user = result.scalars().one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+
+    stmt = select(UserGroupModel).where(UserGroupModel.name == data.new_group)
+    result = await db.execute(stmt)
+    group = result.scalars().one_or_none()
+
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found."
+        )
+
+    if user.group_id == group.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User is already in group {group.name}."
+        )
+
+    try:
+        user.group_id = group.id
+        await db.commit()
+    except SQLAlchemyError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error updating user group."
+        )
+
+    return MessageResponseSchema(message=f"User {user.email} changed group to {group.name}")
