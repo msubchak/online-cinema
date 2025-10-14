@@ -21,7 +21,7 @@ from app.schemas.accounts import (
     UserRegistrationResponseSchema,
     UserRegistrationRequestSchema,
     MessageResponseSchema,
-    UserActivationRequestSchema, UserLoginResponseSchema, UserLoginRequestSchema
+    UserActivationRequestSchema, UserLoginResponseSchema, UserLoginRequestSchema, UserLogoutRequestSchema
 )
 from app.security.interfaces import JWTAuthManagerInterface
 
@@ -187,3 +187,32 @@ async def login_user(
         access_token=jwt_access_token,
         refresh_token=jwt_refresh_token,
     )
+
+
+@router.post(
+    "/logout/",
+    response_model=MessageResponseSchema,
+    summary="Logout a user",
+    description="Logout a user's account.",
+    status_code=status.HTTP_200_OK,
+)
+async def logout_user(
+        logout_data: UserLogoutRequestSchema,
+        db: AsyncSession = Depends(get_db),
+) -> MessageResponseSchema:
+    stmt = select(RefreshTokenModel).where(
+        RefreshTokenModel.token == logout_data.refresh_token
+    )
+    result = await db.execute(stmt)
+    token = result.scalars().first()
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid refresh token."
+        )
+
+    await db.delete(token)
+    await db.commit()
+
+    return MessageResponseSchema(message="User logged out successfully.")
