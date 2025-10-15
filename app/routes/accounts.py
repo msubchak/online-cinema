@@ -489,7 +489,6 @@ async def activate_user(
         )
 
     user.is_active = True
-
     await db.commit()
 
     return MessageResponseSchema(message=f"User {user.email} activated")
