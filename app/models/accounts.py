@@ -142,6 +142,9 @@ class TokenBaseModel(Base):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
+    def is_expired(self) -> bool:
+        return datetime.now(timezone.utc) > self.expires_at
+
 
 class ActivationTokenModel(TokenBaseModel):
     __tablename__ = "activation_tokens"
