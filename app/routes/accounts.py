@@ -25,7 +25,8 @@ from app.schemas.accounts import (
     MessageResponseSchema,
     UserActivationRequestSchema, UserLoginResponseSchema, UserLoginRequestSchema, UserLogoutRequestSchema,
     UserChangePasswordRequestSchema, PasswordResetRequestSchema, PasswordResetCompleteRequestSchema,
-    TokenRefreshResponseSchema, TokenRefreshRequestSchema, ChangeUserGroupRequestSchema
+    TokenRefreshResponseSchema, TokenRefreshRequestSchema, ChangeUserGroupRequestSchema, ResendActivationRequestSchema,
+    ActivateUserRequestSchema
 )
 from app.security.auth_dependencies import get_current_user, admin_required
 from app.security.interfaces import JWTAuthManagerInterface
@@ -463,3 +464,86 @@ async def change_user_group(
         )
 
     return MessageResponseSchema(message=f"User {user.email} changed group to {group.name}")
+
+
+@router.post(
+    "/admin/activate-user/",
+    response_model=MessageResponseSchema,
+    summary="Activate user",
+    description="Activate user",
+    status_code=status.HTTP_200_OK,
+)
+async def activate_user(
+        data: ActivateUserRequestSchema,
+        db: AsyncSession = Depends(get_db),
+        admin_user: UserModel = Depends(admin_required)
+) -> MessageResponseSchema:
+    stmt = select(UserModel).where(UserModel.email == data.email)
+    result = await db.execute(stmt)
+    user = result.scalars().one_or_none()
+
+    if not user or user.is_active == True:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found or user already active."
+        )
+
+    user.is_active = True
+
+    await db.commit()
+
+    return MessageResponseSchema(message=f"User {user.email} activated")
+
+
+@router.post(
+    "/resend-activation/",
+    response_model=MessageResponseSchema,
+    summary="Resend activation",
+    description="Resend activation",
+    status_code=status.HTTP_200_OK,
+)
+async def resend_activation(
+        data: ResendActivationRequestSchema,
+        background_tasks: BackgroundTasks,
+        db: AsyncSession = Depends(get_db),
+        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+) -> MessageResponseSchema:
+    stmt = select(UserModel).where(UserModel.email == data.email)
+    result = await db.execute(stmt)
+    user = result.scalars().one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_BAD_REQUEST,
+            detail="User not found."
+        )
+
+    if user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is already active."
+        )
+
+    if user.activation_token and not user.activation_token.is_expired():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Activation link already sent. Please try again later."
+        )
+
+    if user.activation_token:
+        await db.delete(user.activation_token)
+        await db.commit()
+
+    new_token = ActivationTokenModel(user_id=user.id)
+    db.add(new_token)
+    await db.commit()
+    await db.refresh(new_token)
+
+    activation_link = f"https://localhost:8000/api/v1/accounts/activate?token={new_token.token}"
+    background_tasks.add_task(
+        email_sender.send_activation_email,
+        user.email,
+        activation_link,
+    )
+
+    return MessageResponseSchema(message="Activation link sent.")

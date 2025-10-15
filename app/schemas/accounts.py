@@ -89,3 +89,11 @@ class TokenRefreshResponseSchema(BaseModel):
 class ChangeUserGroupRequestSchema(BaseModel):
     email: EmailStr
     new_group: UserGroupEnum
+
+
+class ResendActivationRequestSchema(BaseModel):
+    email: EmailStr
+
+
+class ActivateUserRequestSchema(BaseModel):
+    email: EmailStr
