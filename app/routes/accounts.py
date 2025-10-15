@@ -25,7 +25,8 @@ from app.schemas.accounts import (
     MessageResponseSchema,
     UserActivationRequestSchema, UserLoginResponseSchema, UserLoginRequestSchema, UserLogoutRequestSchema,
     UserChangePasswordRequestSchema, PasswordResetRequestSchema, PasswordResetCompleteRequestSchema,
-    TokenRefreshResponseSchema, TokenRefreshRequestSchema, ChangeUserGroupRequestSchema, ResendActivationRequestSchema
+    TokenRefreshResponseSchema, TokenRefreshRequestSchema, ChangeUserGroupRequestSchema, ResendActivationRequestSchema,
+    ActivateUserRequestSchema
 )
 from app.security.auth_dependencies import get_current_user, admin_required
 from app.security.interfaces import JWTAuthManagerInterface
@@ -463,6 +464,35 @@ async def change_user_group(
         )
 
     return MessageResponseSchema(message=f"User {user.email} changed group to {group.name}")
+
+
+@router.post(
+    "/admin/activate-user/",
+    response_model=MessageResponseSchema,
+    summary="Activate user",
+    description="Activate user",
+    status_code=status.HTTP_200_OK,
+)
+async def activate_user(
+        data: ActivateUserRequestSchema,
+        db: AsyncSession = Depends(get_db),
+        admin_user: UserModel = Depends(admin_required)
+) -> MessageResponseSchema:
+    stmt = select(UserModel).where(UserModel.email == data.email)
+    result = await db.execute(stmt)
+    user = result.scalars().one_or_none()
+
+    if not user or user.is_active == True:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found or user already active."
+        )
+
+    user.is_active = True
+
+    await db.commit()
+
+    return MessageResponseSchema(message=f"User {user.email} activated")
 
 
 @router.post(

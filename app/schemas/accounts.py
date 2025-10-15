@@ -93,3 +93,7 @@ class ChangeUserGroupRequestSchema(BaseModel):
 
 class ResendActivationRequestSchema(BaseModel):
     email: EmailStr
+
+
+class ActivateUserRequestSchema(BaseModel):
+    email: EmailStr
