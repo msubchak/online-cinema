@@ -9,7 +9,8 @@ from sqlalchemy.orm import joinedload
 from app import models
 from app.core.database import get_db
 from app.models.movies import MovieModel, CertificationModel, GenreModel, StarModel, DirectorModel
-from app.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieCreateSchema, MovieDetailSchema
+from app.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieCreateSchema, MovieDetailSchema, \
+    MovieUpdateSchema
 
 router = APIRouter()
 
@@ -231,3 +232,36 @@ async def get_movie_by_id(
         )
 
     return MovieDetailSchema.model_validate(movie)
+
+
+@router.patch(
+    "/{movie_id}",
+    summary="Update movie detail by ID",
+    description="Update details of a specific movie by its unique ID."
+)
+async def update_movie(
+        movie_id: int,
+        movie_data: MovieUpdateSchema,
+        db: AsyncSession = Depends(get_db),
+):
+    stmt = select(MovieModel).where(MovieModel.id == movie_id)
+    result = await db.execute(stmt)
+    movie = result.scalars().first()
+
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Movie with ID '{movie_id}' not found."
+        )
+
+    for field, value in movie_data.model_dump(exclude_unset=True).items():
+        setattr(movie, field, value)
+
+    try:
+        await db.commit()
+        await db.refresh(movie)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid input data.")
+
+    return {"detail": "Movie updated successfully."}

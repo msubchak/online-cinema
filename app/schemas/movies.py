@@ -111,3 +111,15 @@ class MovieDetailSchema(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class MovieUpdateSchema(BaseModel):
+    name: Optional[str]
+    year: Optional[int]
+    time: Optional[int]
+    imdb: Optional[float]
+    votes: Optional[int]
+    meta_score: Optional[float]
+    gross: Optional[float]
+    description: Optional[str]
+    price: Optional[float]
