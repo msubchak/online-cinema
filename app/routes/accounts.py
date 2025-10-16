@@ -18,7 +18,6 @@ from app.models.accounts import (
     ActivationTokenModel,
     UserGroupModel, RefreshTokenModel, PasswordResetTokenModel
 )
-from app.core import accounts_validators
 from app.schemas.accounts import (
     UserRegistrationResponseSchema,
     UserRegistrationRequestSchema,
@@ -489,7 +488,6 @@ async def activate_user(
         )
 
     user.is_active = True
-
     await db.commit()
 
     return MessageResponseSchema(message=f"User {user.email} activated")
