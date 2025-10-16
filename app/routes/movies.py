@@ -265,3 +265,29 @@ async def update_movie(
         raise HTTPException(status_code=400, detail="Invalid input data.")
 
     return {"detail": "Movie updated successfully."}
+
+
+@router.delete(
+    "/{movie_id}",
+    summary="Delete movie by ID",
+    description="Delete a specific movie by its unique ID.",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_movie(
+        movie_id: int,
+        db: AsyncSession = Depends(get_db),
+):
+    stmt = select(MovieModel).where(MovieModel.id == movie_id)
+    result = await db.execute(stmt)
+    movie = result.scalars().first()
+
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Movie with ID '{movie_id}' not found."
+        )
+
+    await db.delete(movie)
+    await db.commit()
+
+    return
