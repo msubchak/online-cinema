@@ -4,6 +4,7 @@ from typing import Optional, Literal
 from fastapi import APIRouter, Query, Depends, HTTPException, status
 from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app import models
 from app.core.database import get_db
@@ -197,3 +198,36 @@ async def create_movie(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid input data"
         )
+
+
+@router.get(
+    "/{movie_id}",
+    response_model=MovieDetailSchema,
+    summary="Get movie detail by ID",
+    description="Fetch detailed information about a specific movie by its unique ID."
+)
+async def get_movie_by_id(
+        movie_id: int,
+        db: AsyncSession = Depends(get_db),
+) -> MovieDetailSchema:
+    stmt = (
+        select(MovieModel)
+        .options(
+            joinedload(MovieModel.certification),
+            joinedload(MovieModel.genres),
+            joinedload(MovieModel.stars),
+            joinedload(MovieModel.directors),
+        )
+    .where(MovieModel.id == movie_id)
+    )
+
+    result = await db.execute(stmt)
+    movie = result.scalars().first()
+
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Movie with ID '{movie_id}' not found."
+        )
+
+    return MovieDetailSchema.model_validate(movie)
