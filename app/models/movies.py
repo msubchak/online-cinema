@@ -36,58 +36,58 @@ movie_directors = Table(
 )
 
 
-class Genre(Base):
+class GenreModel(Base):
     __tablename__ = "genres"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
 
     movies = relationship(
-        "Movie",
+        "MovieModel",
         secondary=movie_genres,
         back_populates="genres",
     )
 
 
-class Star(Base):
+class StarModel(Base):
     __tablename__ = "stars"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
 
     movies = relationship(
-        "Movie",
+        "MovieModel",
         secondary=movie_stars,
         back_populates="stars",
     )
 
 
-class Director(Base):
+class DirectorModel(Base):
     __tablename__ = "directors"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
 
     movies = relationship(
-        "Movie",
+        "MovieModel",
         secondary=movie_directors,
         back_populates="directors",
     )
 
 
-class Certification(Base):
+class CertificationModel(Base):
     __tablename__ = "certifications"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
 
     movies = relationship(
-        "Movie",
+        "MovieModel",
         back_populates="certification",
     )
 
 
-class Movie(Base):
+class MovieModel(Base):
     __tablename__ = "movies"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -103,10 +103,10 @@ class Movie(Base):
     price = Column(DECIMAL(10, 2))
     certification_id = Column(Integer, ForeignKey("certifications.id"), nullable=False)
 
-    certification  = relationship("Certification", back_populates="movies")
-    genres = relationship("Genre", secondary=movie_genres ,back_populates="movies")
-    stars = relationship("Star", secondary=movie_stars , back_populates="movies")
-    directors = relationship("Director", secondary=movie_directors , back_populates="movies")
+    certification  = relationship("CertificationModel", back_populates="movies")
+    genres = relationship("GenreModel", secondary=movie_genres ,back_populates="movies")
+    stars = relationship("StarModel", secondary=movie_stars , back_populates="movies")
+    directors = relationship("DirectorModel", secondary=movie_directors , back_populates="movies")
 
     __table_args__ = (
         UniqueConstraint(

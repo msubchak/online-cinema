@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError
 from typing import Optional, Literal
 
 from fastapi import APIRouter, Query, Depends, HTTPException, status
@@ -6,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models
 from app.core.database import get_db
-from app.models.movies import MovieModel
-from app.schemas.movies import MovieListResponseSchema, MovieListItemSchema
+from app.models.movies import MovieModel, CertificationModel, GenreModel, StarModel, DirectorModel
+from app.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieCreateSchema, MovieDetailSchema
 
 router = APIRouter()
 
@@ -93,3 +94,106 @@ async def get_movie_list(
         total_pages=total_pages,
         total_items=total_items,
     )
+
+
+@router.post(
+    "/",
+    response_model=MovieDetailSchema,
+    summary="Add a new movie.",
+    description="Add a new movie.",
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_movie(
+        movie_data: MovieCreateSchema,
+        db: AsyncSession = Depends(get_db),
+) -> MovieDetailSchema:
+    existing_stmt = select(MovieModel).where(
+        (MovieModel.name == movie_data.name),
+        (MovieModel.time == movie_data.time)
+    )
+    existing_result = await db.execute(existing_stmt)
+    existing_movie = existing_result.scalars().first()
+
+    if existing_movie:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"A movie with the name '{movie_data.name}' and release date "
+                f"'{movie_data.time}' already exists."
+            )
+        )
+
+    try:
+        certification_stmt = select(CertificationModel).where(
+            CertificationModel.name == movie_data.certification
+        )
+        certification_result = await db.execute(certification_stmt)
+        certification = certification_result.scalars().first()
+        if not certification:
+            certification = CertificationModel(name=movie_data.certification)
+            db.add(certification)
+            await db.flush()
+
+        genres = []
+        for genre_name in movie_data.genres:
+            genre_stmt = select(GenreModel).where(GenreModel.name == genre_name)
+            genre_result = await db.execute(genre_stmt)
+            genre = genre_result.scalars().first()
+
+            if not genre:
+                genre = GenreModel(name=genre_name)
+                db.add(genre)
+                await db.flush()
+            genres.append(genre)
+
+        stars = []
+        for star_name in movie_data.stars:
+            star_stmt = select(StarModel).where(StarModel.name == star_name)
+            star_result = await db.execute(star_stmt)
+            star = star_result.scalars().first()
+
+            if not star:
+                star = StarModel(name=star_name)
+                db.add(star)
+                await db.flush()
+            stars.append(star)
+
+        directors = []
+        for director_name in movie_data.directors:
+            director_stmt = select(DirectorModel).where(DirectorModel.name == director_name)
+            director_result = await db.execute(director_stmt)
+            director = director_result.scalars().first()
+
+            if not director:
+                director = DirectorModel(name=director_name)
+                db.add(director)
+                await db.flush()
+            directors.append(director)
+
+        movie = MovieModel(
+            name=movie_data.name,
+            year=movie_data.year,
+            time=movie_data.time,
+            imdb=movie_data.imdb,
+            votes=movie_data.votes,
+            meta_score=movie_data.meta_score,
+            gross=movie_data.gross,
+            description=movie_data.description,
+            price=movie_data.price,
+            certification=certification,
+            genres=genres,
+            stars=stars,
+            directors=directors,
+        )
+        db.add(movie)
+        await db.commit()
+        await db.refresh(movie, ["genres", "stars", "directors"])
+
+        return MovieDetailSchema.model_validate(movie)
+
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid input data"
+        )
