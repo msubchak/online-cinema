@@ -17,3 +17,16 @@ class StarListResponseSchema(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class StarCreateSchemas(BaseModel):
+    name: str
+
+
+class StarDetailSchema(BaseModel):
+    id: int
+    name: str
+
+    model_config = {
+        "from_attributes": True
+    }

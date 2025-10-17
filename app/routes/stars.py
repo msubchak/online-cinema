@@ -5,8 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.movies import StarModel
-from app.schemas.stars import StarListResponseSchema, StarListItemSchema
-
+from app.schemas.stars import StarListResponseSchema, StarListItemSchema, StarDetailSchema, StarCreateSchemas
 
 router = APIRouter()
 
@@ -59,3 +58,43 @@ async def get_stars(
         total_pages=total_pages,
         total_items=total_items,
     )
+
+
+@router.post(
+    "/",
+    response_model=StarDetailSchema,
+    summary="Add a new star",
+    description="Add a new star",
+)
+async def create_star(
+        star_data: StarCreateSchemas,
+        db: AsyncSession = Depends(get_db),
+) -> StarDetailSchema:
+    existing_stmt = select(StarModel).where(
+        StarModel.name == star_data.name,
+    )
+    existing_result = await db.execute(existing_stmt)
+    existing_star = existing_result.scalars().first()
+
+    if existing_star:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A star with the same name already exists",
+        )
+
+    try:
+        star = StarModel(
+            name=star_data.name
+        )
+        db.add(star)
+        await db.commit()
+        await db.refresh(star)
+
+        return StarDetailSchema.model_validate(star)
+
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid input data."
+        )
