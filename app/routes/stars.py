@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.movies import StarModel
-from app.schemas.stars import StarListResponseSchema, StarListItemSchema, StarDetailSchema, StarCreateSchemas
+from app.schemas.stars import StarListResponseSchema, StarListItemSchema, StarDetailSchema, StarCreateSchemas, \
+    StarUpdateSchema
 
 router = APIRouter()
 
@@ -91,7 +92,6 @@ async def create_star(
         await db.refresh(star)
 
         return StarDetailSchema.model_validate(star)
-
     except IntegrityError:
         await db.rollback()
         raise HTTPException(
@@ -121,3 +121,45 @@ async def get_star_by_id(
         )
 
     return StarDetailSchema.model_validate(star, from_attributes=True)
+
+
+@router.patch(
+    "/{star_id}",
+    summary="Update star detail by ID",
+    description="Update details of a specific star by its unique ID."
+)
+async def update_star(
+        star_id: int,
+        star_data: StarUpdateSchema,
+        db: AsyncSession = Depends(get_db),
+):
+    stmt = select(StarModel).where(StarModel.id == star_id)
+    result = await db.execute(stmt)
+    star = result.scalars().first()
+
+    if not star:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No star found",
+        )
+
+    for field, value in star_data.model_dump(exclude_unset=True).items():
+        setattr(star, field, value)
+
+    if star_data.name:
+        existing_stmt = select(StarModel).where(
+            StarModel.name == star_data.name,
+            StarModel.id != star_id
+        )
+        existing_result = await db.execute(existing_stmt)
+        if existing_result.scalars().first():
+            raise HTTPException(status_code=409, detail="A star with the same name already exists")
+
+    try:
+        await db.commit()
+        await db.refresh(star)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid input data.")
+
+    return {"detail": "Star updated successfully."}

@@ -30,3 +30,7 @@ class StarDetailSchema(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class StarUpdateSchema(BaseModel):
+    name: Optional[str]
