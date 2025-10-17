@@ -1,10 +1,11 @@
+from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.movies import GenreModel
-from app.schemas.genres import GenresListResponseSchema, GenresListItemSchema
+from app.schemas.genres import GenresListResponseSchema, GenresListItemSchema, GenresCreateSchemas, GenresDetailSchema
 
 router = APIRouter()
 
@@ -63,3 +64,43 @@ async def get_genres(
         total_pages=total_pages,
         total_items=total_items,
     )
+
+
+@router.post(
+    "/",
+    response_model=GenresDetailSchema,
+    summary="Add a new genre",
+    description="Add a new genre",
+)
+async def create_genre(
+        genre_data: GenresCreateSchemas,
+        db: AsyncSession = Depends(get_db),
+) -> GenresDetailSchema:
+    existing_stmt = select(GenreModel).where(
+        (GenreModel.name == genre_data.name)
+    )
+    existing_result = await db.execute(existing_stmt)
+    existing_genre = existing_result.scalars().first()
+
+    if existing_genre:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A genre with the same name already exists",
+        )
+
+    try:
+         genre = GenreModel(
+             name=genre_data.name
+         )
+         db.add(genre)
+         await db.commit()
+         await db.refresh(genre)
+
+         return GenresDetailSchema.model_validate(genre)
+
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid input data."
+        )

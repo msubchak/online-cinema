@@ -21,3 +21,12 @@ class GenresListResponseSchema(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class GenresDetailSchema(BaseModel):
+    id: int
+    name: str
+
+    model_config = {
+        "from_attributes": True
+    }
