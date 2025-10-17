@@ -98,3 +98,26 @@ async def create_star(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid input data."
         )
+
+
+@router.get(
+    "/{star_id}",
+    response_model=StarDetailSchema,
+    summary="Get star details by ID.",
+    description="Get star details by ID",
+)
+async def get_star_by_id(
+        star_id: int,
+        db: AsyncSession = Depends(get_db),
+) -> StarDetailSchema:
+    stmt = select(StarModel).where(StarModel.id == star_id)
+    result = await db.execute(stmt)
+    star = result.scalars().first()
+
+    if not star:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No star found",
+        )
+
+    return StarDetailSchema.model_validate(star, from_attributes=True)
