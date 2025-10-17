@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.movies import GenreModel
-from app.schemas.genres import GenresListResponseSchema, GenresListItemSchema, GenresCreateSchemas, GenresDetailSchema
+from app.schemas.genres import GenresListResponseSchema, GenresListItemSchema, GenresCreateSchemas, GenresDetailSchema, \
+    GenreUpdateSchema
 
 router = APIRouter()
 
@@ -127,3 +128,45 @@ async def get_genre_by_id(
         )
 
     return GenresDetailSchema.model_validate(genre)
+
+
+@router.patch(
+    "/{genre_id}",
+    summary="Update genre detail by ID",
+    description="Update details of a specific genre by its unique ID."
+)
+async def update_genre(
+        genre_id: int,
+        genre_data: GenreUpdateSchema,
+        db: AsyncSession = Depends(get_db),
+):
+    stmt = select(GenreModel).where(GenreModel.id == genre_id)
+    result = await db.execute(stmt)
+    genre = result.scalars().first()
+
+    if not genre:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No genres found",
+        )
+
+    for field, value in genre_data.model_dump(exclude_unset=True).items():
+        setattr(genre, field, value)
+
+    if genre_data.name:
+        existing_stmt = select(GenreModel).where(
+            GenreModel.name == genre_data.name,
+            GenreModel.id != genre_id
+        )
+        existing_result = await db.execute(existing_stmt)
+        if existing_result.scalars().first():
+            raise HTTPException(status_code=409, detail="A genre with the same name already exists")
+
+    try:
+        await db.commit()
+        await db.refresh(genre)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid input data.")
+
+    return {"detail": "Genre updated successfully."}
