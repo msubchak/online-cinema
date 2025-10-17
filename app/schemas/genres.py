@@ -30,3 +30,7 @@ class GenresDetailSchema(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class GenreUpdateSchema(BaseModel):
+    name: Optional[str]
