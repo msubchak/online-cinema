@@ -104,3 +104,26 @@ async def create_genre(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid input data."
         )
+
+
+@router.get(
+    "/{genre_id}/",
+    response_model=GenresDetailSchema,
+    summary="Get genre details by ID.",
+    description="Get genre details by ID",
+)
+async def get_genre_by_id(
+        genre_id: int,
+        db: AsyncSession = Depends(get_db),
+) -> GenresDetailSchema:
+    stmt = select(GenreModel).where(GenreModel.id == genre_id)
+    result = await db.execute(stmt)
+    genre = result.scalars().first()
+
+    if not genre:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No genres found",
+        )
+
+    return GenresDetailSchema.model_validate(genre)
