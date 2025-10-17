@@ -163,3 +163,27 @@ async def update_star(
         raise HTTPException(status_code=400, detail="Invalid input data.")
 
     return {"detail": "Star updated successfully."}
+
+
+@router.delete(
+    "/{star_id}",
+    summary="Delete star by ID.",
+    description="Delete a specific star by its unique ID."
+)
+async def delete_star(
+        star_id: int,
+        db: AsyncSession = Depends(get_db),
+):
+    stmt = select(StarModel).where(StarModel.id == star_id)
+    result = await db.execute(stmt)
+    star = result.scalars().first()
+
+    if not star:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No star found",
+        )
+
+    await db.delete(star)
+    await db.commit()
+    return
