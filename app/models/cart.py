@@ -36,5 +36,5 @@ class CartItemModel(Base):
     movie = relationship("MovieModel")
 
     __table_args__ = (
-        UniqueConstraint("cart_id", "movie_id", name="unique_cart_movie")
+        UniqueConstraint("cart_id", "movie_id", name="unique_cart_movie"),
     )
