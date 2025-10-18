@@ -14,7 +14,7 @@ def get_settings() -> BaseAppSettings:
     environment = os.getenv("ENVIRONMENT", "development")
     if environment == "testing":
         return TestingSettings()
-    return Settings
+    return Settings()
 
 
 def get_accounts_email_notificator(
@@ -37,6 +37,6 @@ def get_accounts_email_notificator(
 def get_jwt_auth_manager(settings: BaseAppSettings = Depends(get_settings)) -> JWTAuthManagerInterface:
     return JWTAuthManager(
         secret_key_access=settings.SECRET_KEY_ACCESS,
-        secret_key=settings.SECRET_KEY_REFRESH,
+        secret_key_refresh=settings.SECRET_KEY_REFRESH,
         algorithm=settings.JWT_SIGNING_ALGORITHM,
     )
