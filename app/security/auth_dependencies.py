@@ -3,10 +3,10 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config.email_utils import get_jwt_auth_manager
 from app.core.database import get_db
 from app.models.accounts import UserModel, UserGroupEnum
 from app.security.interfaces import JWTAuthManagerInterface
-from app.security.token_manager import JWTAuthManager
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/accounts/login/")
@@ -15,7 +15,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/accounts/login/")
 async def get_current_user(
         token: str = Depends(oauth2_scheme),
         db: AsyncSession = Depends(get_db),
-        jwt_manager: JWTAuthManagerInterface = Depends(JWTAuthManager)
+        jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager)
 ) -> UserModel:
     try:
         payload = jwt_manager.decode_access_token(token)
