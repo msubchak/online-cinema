@@ -99,3 +99,41 @@ async def add_cart_item(
     await db.refresh(cart_item)
 
     return {"detail": "Movie added to the cart successfully"}
+
+
+@router.delete(
+    "/{movie_id}",
+    summary="Remove a movie from the cart",
+    description="Removes a movie from the authenticated user's cart",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_movie_from_cart(
+        movie_id: int,
+        db: AsyncSession = Depends(get_db),
+        current_user: UserModel = Depends(get_current_user),
+):
+    stmt_cart = select(CartModel).where(CartModel.user_id == current_user.id)
+    result = await db.execute(stmt_cart)
+    cart = result.scalars().first()
+
+    if not cart:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No cart found",
+        )
+
+    stmt_movie = select(CartItemModel).where(
+        CartItemModel.cart_id == cart.id,
+        CartItemModel.movie_id == movie_id
+    )
+    result = await db.execute(stmt_movie)
+    movie = result.scalars().first()
+
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No movie found",
+        )
+
+    await db.delete(movie)
+    await db.commit()
