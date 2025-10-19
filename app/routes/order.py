@@ -1,3 +1,4 @@
+from pygments.lexers import q
 from sqlalchemy import select
 
 from app.models.accounts import UserModel
@@ -121,8 +122,8 @@ async def create_order(
 @router.post(
     "/{order_id}/pay",
     summary="Pay for an order",
-    description="Processes payment for a specific order of the current user. "
-                "Checks if the order exists and has not already been paid. "
+    description="Processes payment for a specific order of the current user."
+                "Checks if the order exists and has not already been paid."
                 "If successful, updates the order status to 'PAID'.",
     status_code=status.HTTP_200_OK,
 )
@@ -155,3 +156,46 @@ async def pay_order(
     await db.refresh(order)
 
     return {"message": f"Order {order.id} has been successfully paid."}
+
+
+@router.post(
+    "/{order_id}/cancel",
+    summary="Cancel a pending order",
+    description="Allows a user to cancel their order if it has not been paid yet. Paid orders cannot be canceled directly.",
+    status_code=status.HTTP_200_OK,
+)
+async def cancel_order(
+        order_id: int,
+        current_user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+):
+    stmt_order = select(OrdersModel).where(
+        OrdersModel.id == order_id,
+        OrdersModel.user_id == current_user.id
+    )
+    result = await db.execute(stmt_order)
+    order = result.scalars().first()
+
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found",
+        )
+
+    if order.status == StatusEnum.CANCELED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Order is already canceled",
+        )
+
+    if order.status == StatusEnum.PAID:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Paid orders cannot be canceled directly",
+        )
+
+    order.status = StatusEnum.CANCELED
+    await db.commit()
+    await db.refresh(order)
+
+    return {"message": f"Order {order.id} has been canceled."}
