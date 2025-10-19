@@ -120,8 +120,10 @@ async def create_order(
 
 @router.post(
     "/{order_id}/pay",
-    summary="",
-    description="",
+    summary="Pay for an order",
+    description="Processes payment for a specific order of the current user. "
+                "Checks if the order exists and has not already been paid. "
+                "If successful, updates the order status to 'PAID'.",
     status_code=status.HTTP_200_OK,
 )
 async def pay_order(
