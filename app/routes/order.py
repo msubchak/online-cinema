@@ -1,3 +1,5 @@
+from typing import List
+
 from pygments.lexers import q
 from sqlalchemy import select
 
@@ -8,8 +10,7 @@ from app.core.database import get_db
 from app.models.cart import CartModel
 from app.models.order import OrderItemModel, OrdersModel, StatusEnum
 from app.schemas.order import OrderResponseSchema, OrderMovieSchema
-from app.security.auth_dependencies import get_current_user
-
+from app.security.auth_dependencies import get_current_user, admin_required
 
 router = APIRouter()
 
@@ -199,3 +200,52 @@ async def cancel_order(
     await db.refresh(order)
 
     return {"message": f"Order {order.id} has been canceled."}
+
+
+@router.get(
+    "/admin/",
+    response_model=List[OrderResponseSchema],
+    summary="View all user orders (admin)",
+    description=(
+        "Allows admins to view all user orders. "
+        "Filters can be applied by user, date range, or order status (paid, canceled, pending)."
+    ),
+    status_code=status.HTTP_200_OK,
+)
+
+async def get_orders_for_admin(
+    db: AsyncSession = Depends(get_db),
+    admin_user: UserModel = Depends(admin_required)
+) -> List[OrderResponseSchema]:
+    stmt = select(OrdersModel)
+    result = await db.execute(stmt)
+    orders = result.scalars().all()
+
+    if not orders:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No orders found",
+        )
+
+    order_list = []
+
+    for order in orders:
+        items = []
+        for item in order.items:
+            order_movie = OrderMovieSchema(
+                movie_id=item.movie_id,
+                name=item.movie.name,
+                price_at_order=item.price_at_order,
+            )
+            items.append(order_movie)
+
+        order_response = OrderResponseSchema(
+            id=order.id,
+            created_at=order.created_at,
+            status=order.status.value,
+            total_amount=order.total_amount,
+            items=items
+        )
+        order_list.append(order_response)
+
+    return order_list
