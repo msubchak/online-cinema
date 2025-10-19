@@ -1,11 +1,11 @@
 from typing import List
-
-from pygments.lexers import q
 from sqlalchemy import select
+from typing import Optional
+from datetime import date
 
 from app.models.accounts import UserModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.database import get_db
 from app.models.cart import CartModel
 from app.models.order import OrderItemModel, OrdersModel, StatusEnum
@@ -215,9 +215,23 @@ async def cancel_order(
 
 async def get_orders_for_admin(
     db: AsyncSession = Depends(get_db),
-    admin_user: UserModel = Depends(admin_required)
+    admin_user: UserModel = Depends(admin_required),
+    user_id: Optional[int] = Query(None, description="Filter by user id"),
+    start_date: Optional[date] = Query(None, description="Filter by start date"),
+    end_date: Optional[date] = Query(None, description="Filter by end date"),
+    status: Optional[StatusEnum] = Query(None, description="Filter by order status"),
 ) -> List[OrderResponseSchema]:
     stmt = select(OrdersModel)
+
+    if user_id is not None:
+        stmt = stmt.where(OrdersModel.user_id == user_id)
+    if start_date is not None:
+        stmt = stmt.where(OrdersModel.created_at >= start_date)
+    if end_date is not None:
+        stmt = stmt.where(OrdersModel.created_at <= end_date)
+    if status is not None:
+        stmt = stmt.where(OrdersModel.status == status)
+
     result = await db.execute(stmt)
     orders = result.scalars().all()
 
