@@ -51,5 +51,5 @@ class PaymentItemModel(Base):
     order_item_id: Mapped[int] = mapped_column(ForeignKey("order_items.id"), nullable=False)
     price_at_payment: Mapped[Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
 
-    payment: Mapped["PaymentsModel"] = relationship("PaymentsModel", back_populates="items")
+    payment: Mapped["PaymentModel"] = relationship("PaymentModel", back_populates="items")
     order_item: Mapped["OrderItemModel"] = relationship("OrderItemModel")
