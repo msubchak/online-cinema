@@ -1,6 +1,7 @@
 import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from typing import Optional
 
 import aiosmtplib
 from jinja2 import Environment, FileSystemLoader
@@ -23,6 +24,7 @@ class EmailSender(EmailSenderInterface):
         activation_complete_email_template_name: str,
         password_email_template_name: str,
         password_complete_email_template_name: str,
+        success_payment_template_name: str
     ):
         self._hostname = hostname
         self._port = port
@@ -33,6 +35,7 @@ class EmailSender(EmailSenderInterface):
         self._activation_complete_email_template_name = activation_complete_email_template_name
         self._password_email_template_name = password_email_template_name
         self._password_complete_email_template_name = password_complete_email_template_name
+        self._success_payment_template_name = success_payment_template_name
 
         self._env = Environment(loader=FileSystemLoader(template_dir))
 
@@ -77,4 +80,10 @@ class EmailSender(EmailSenderInterface):
         template = self._env.get_template(self._password_complete_email_template_name)
         html_content = template.render(email=email, login_link=login_link)
         subject = "Your Password Has Been Successfully Reset"
+        await self._send_email(email, subject, html_content)
+
+    async def send_success_payment(self, email: str, order_link: Optional[str] = None) -> None:
+        template = self._env.get_template(self._success_payment_template_name)
+        html_content = template.render(email=email, order_link=order_link)
+        subject = "Your payment was successful"
         await self._send_email(email, subject, html_content)

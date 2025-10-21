@@ -3,9 +3,12 @@ from typing import Optional, List
 from datetime import date
 from sqlalchemy import select
 from decimal import Decimal
+
+from app.core.config.email_utils import get_accounts_email_notificator
+from app.core.notifications.interfaces import EmailSenderInterface
 from app.models.accounts import UserModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, BackgroundTasks
 from app.core.database import get_db
 from app.core.config import settings
 from app.models.order import OrderItemModel, OrdersModel, StatusEnum
@@ -145,7 +148,9 @@ async def create_payments(
 )
 async def stripe_webhook(
         request: Request,
+        background_tasks: BackgroundTasks,
         db: AsyncSession = Depends(get_db),
+        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
 ):
     payload = await request.body()
     sig_head = request.headers.get("stripe-signature")
@@ -161,6 +166,17 @@ async def stripe_webhook(
 
     if event["type"] == "payment_intent.succeeded":
         await update_payment_status(db, StatusEnum.SUCCESSFUL, event["data"]["object"]["id"])
+        stmt = select(PaymentModel).where(PaymentModel.external_payment_id == event["data"]["object"]["id"])
+        result = await db.execute(stmt)
+        payment = result.scalars().first()
+
+        if payment:
+            order_link = f"https://localhost:8000/api/v1/payment/{payment.order_id}"
+            background_tasks.add_task(
+                email_sender.send_success_payment,
+                payment.user.email,
+                order_link
+            )
 
     elif event["type"] == "payment_intent.payment_failed":
         await update_payment_status(db, StatusEnum.CANCELED, event["data"]["object"]["id"])
