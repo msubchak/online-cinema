@@ -32,8 +32,8 @@ async def update_payment_status(db: AsyncSession, status: StatusEnum, external_i
 @router.post(
     "/",
     response_model=PaymentResponseSchema,
-    summary="",
-    description="",
+    summary="Create a payment",
+    description="Processes a payment for a user's order via Stripe.",
     status_code=status.HTTP_201_CREATED,
 )
 async def create_payments(
