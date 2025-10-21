@@ -11,8 +11,7 @@ from app.core.config import settings
 from app.models.order import OrderItemModel, OrdersModel, StatusEnum
 from app.models.payments import PaymentModel, PaymentItemModel
 from app.schemas.payments import PaymentRequestSchema, PaymentResponseSchema, PaymentItemSchema
-from app.security.auth_dependencies import get_current_user
-
+from app.security.auth_dependencies import get_current_user, admin_required
 
 router = APIRouter()
 
@@ -182,12 +181,51 @@ async def stripe_webhook(
 async def get_payments_by_user(
         current_user: UserModel = Depends(get_current_user),
         db: AsyncSession = Depends(get_db),
-        status: Optional[StatusEnum] = Query(None, description="Filter by order status"),
+        status: Optional[StatusEnum] = Query(None, description="Filter by payment status"),
         start_date: Optional[date] = Query(None, description="Filter by start date"),
         end_date: Optional[date] = Query(None, description="Filter by end date"),
 ) -> List[PaymentResponseSchema]:
     stmt = select(PaymentModel).where(PaymentModel.user_id == current_user.id)
 
+    if status is not None:
+        stmt = stmt.where(PaymentModel.status == status)
+    if start_date is not None:
+        stmt = stmt.where(PaymentModel.created_at >= start_date)
+    if end_date is not None:
+        stmt = stmt.where(PaymentModel.created_at <= end_date)
+
+    result = await db.execute(stmt)
+    payments = result.scalars().all()
+
+    if not payments:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No payments found",
+        )
+
+    return payments
+
+
+@router.get(
+    "/admin/",
+    response_model=List[PaymentResponseSchema],
+    summary="View all user payments (admin)",
+    description="Allows admins to view all user payments. "
+        "Filters can be applied by user, date range, or payments status (paid, canceled, pending).",
+    status_code=status.HTTP_200_OK,
+)
+async def get_payments_by_admin(
+        db: AsyncSession = Depends(get_db),
+        admin_user: UserModel = Depends(admin_required),
+        user_id: Optional[int] = Query(None, description="Filter by user id"),
+        status: Optional[StatusEnum] = Query(None, description="Filter by payment status"),
+        start_date: Optional[date] = Query(None, description="Filter by start date"),
+        end_date: Optional[date] = Query(None, description="Filter by end date"),
+) -> List[PaymentResponseSchema]:
+    stmt = select(PaymentModel)
+
+    if user_id is not None:
+        stmt = stmt.where(PaymentModel.user_id == user_id)
     if status is not None:
         stmt = stmt.where(PaymentModel.status == status)
     if start_date is not None:
