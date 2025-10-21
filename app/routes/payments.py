@@ -108,7 +108,7 @@ async def create_payments(
         order_id=order.id,
         amount=total_amount,
         external_payment_id=intent.id,
-        status=StatusEnum.CANCELED
+        status=StatusEnum.SUCCESSFUL
     )
 
     payment.items = [
