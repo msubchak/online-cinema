@@ -1,9 +1,11 @@
 import stripe
+from typing import Optional, List
+from datetime import date
 from sqlalchemy import select
 from decimal import Decimal
 from app.models.accounts import UserModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from app.core.database import get_db
 from app.core.config import settings
 from app.models.order import OrderItemModel, OrdersModel, StatusEnum
@@ -168,3 +170,38 @@ async def stripe_webhook(
         await update_payment_status(db, StatusEnum.REFUNDED, event["data"]["object"]["id"])
 
     return {"status": "success"}
+
+
+@router.get(
+    "/",
+    response_model=List[PaymentResponseSchema],
+    summary="Get user's payments",
+    description="Returns all payments of the current user. Supports optional filters by status and date range.",
+    status_code=status.HTTP_200_OK,
+)
+async def get_payments_by_user(
+        current_user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+        status: Optional[StatusEnum] = Query(None, description="Filter by order status"),
+        start_date: Optional[date] = Query(None, description="Filter by start date"),
+        end_date: Optional[date] = Query(None, description="Filter by end date"),
+) -> List[PaymentResponseSchema]:
+    stmt = select(PaymentModel).where(PaymentModel.user_id == current_user.id)
+
+    if status is not None:
+        stmt = stmt.where(PaymentModel.status == status)
+    if start_date is not None:
+        stmt = stmt.where(PaymentModel.created_at >= start_date)
+    if end_date is not None:
+        stmt = stmt.where(PaymentModel.created_at <= end_date)
+
+    result = await db.execute(stmt)
+    payments = result.scalars().all()
+
+    if not payments:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No payments found",
+        )
+
+    return payments
