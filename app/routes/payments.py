@@ -3,7 +3,7 @@ from sqlalchemy import select
 from decimal import Decimal
 from app.models.accounts import UserModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from app.core.database import get_db
 from app.core.config import settings
 from app.models.order import OrderItemModel, OrdersModel, StatusEnum
@@ -15,6 +15,17 @@ from app.security.auth_dependencies import get_current_user
 router = APIRouter()
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+stripe.webhook_secret = settings.STRIPE_WEBHOOK_SECRET
+
+
+async def update_payment_status(db: AsyncSession, status: StatusEnum, external_id: str):
+    stmt = select(PaymentModel).where(PaymentModel.external_payment_id == external_id)
+    result = await db.execute(stmt)
+    payment = result.scalars().first()
+
+    if payment:
+        payment.status = status
+        await db.commit()
 
 
 @router.post(
@@ -93,7 +104,7 @@ async def create_payments(
         order_id=order.id,
         amount=total_amount,
         external_payment_id=intent.id,
-        status=StatusEnum.SUCCESSFUL
+        status=StatusEnum.CANCELED
     )
 
     payment.items = [
@@ -123,3 +134,37 @@ async def create_payments(
                 for item in payment.items
         ],
     )
+
+
+@router.post(
+    "/webhook",
+    summary="Stripe Webhook.",
+    description="Receives Stripe events and updates payment status (successful, canceled, refunded).",
+    status_code=status.HTTP_200_OK,
+)
+async def stripe_webhook(
+        request: Request,
+        db: AsyncSession = Depends(get_db),
+):
+    payload = await request.body()
+    sig_head = request.headers.get("stripe-signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_head, stripe.webhook_secret
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    if event["type"] == "payment_intent.succeeded":
+        await update_payment_status(db, StatusEnum.SUCCESSFUL, event["data"]["object"]["id"])
+
+    elif event["type"] == "payment_intent.payment_failed":
+        await update_payment_status(db, StatusEnum.CANCELED, event["data"]["object"]["id"])
+
+    elif event["type"] == "charge.refunded":
+        await update_payment_status(db, StatusEnum.REFUNDED, event["data"]["object"]["id"])
+
+    return {"status": "success"}
