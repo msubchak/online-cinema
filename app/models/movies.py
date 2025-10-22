@@ -104,6 +104,12 @@ class MovieModel(Base):
     price: Mapped[Decimal] = mapped_column(DECIMAL(10, 2))
     certification_id: Mapped[int] = mapped_column(ForeignKey("certifications.id"), nullable=False)
 
+    items: Mapped[list["OrderItemModel"]] = relationship(
+        "OrderItemModel",
+        back_populates="movie",
+        cascade="all, delete-orphan"
+    )
+
     certification: Mapped["CertificationModel"] = relationship(
         "CertificationModel",
         back_populates="movies",

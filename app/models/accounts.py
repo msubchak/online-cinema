@@ -21,7 +21,7 @@ from sqlalchemy.orm import (
     validates,
 )
 
-from app.core import validators
+from app.core.validators.accounts import validate_email as check_email, validate_password_strength
 from app.models.Base import Base
 from app.security.password import verify_password, hash_password
 from app.security.utils import generate_secure_token
@@ -60,6 +60,12 @@ class UserModel(Base):
     )
     group_id: Mapped[int] = mapped_column(ForeignKey("user_groups.id", ondelete="CASCADE"), nullable=False)
 
+    orders: Mapped[List["OrdersModel"]] = relationship(
+        "OrdersModel",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
     activation_token: Mapped[Optional["ActivationTokenModel"]] = relationship(
         "ActivationTokenModel",
         back_populates="user",
@@ -96,7 +102,7 @@ class UserModel(Base):
 
     @password.setter
     def password(self, raw_password: str) -> None:
-        validators.validate_password_strength(raw_password)
+        validate_password_strength(raw_password)
         self._hashed_password = hash_password(raw_password)
 
     def verify_password(self, raw_password: str) -> bool:
@@ -104,7 +110,7 @@ class UserModel(Base):
 
     @validates("email")
     def validate_email(self, key, value):
-        return validators.validate_email(value.lower())
+        return check_email(value.lower())
 
 
 class UserProfileModel(Base):
