@@ -35,7 +35,7 @@ class PaymentModel(Base):
     external_payment_id: Mapped[str] = mapped_column(nullable=True)
 
     user: Mapped["UserModel"] = relationship("UserModel")
-    order: Mapped["OrderModel"] = relationship("OrderModel")
+    order: Mapped["OrdersModel"] = relationship("OrdersModel")
     items: Mapped[list["PaymentItemModel"]] = relationship(
         "PaymentItemModel",
         back_populates="payment",
