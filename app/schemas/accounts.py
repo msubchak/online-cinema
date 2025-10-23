@@ -78,7 +78,7 @@ class PasswordResetCompleteRequestSchema(BaseModel):
 
 
 class TokenRefreshRequestSchema(BaseModel):
-    token: str
+    refresh_token: str
 
 
 class TokenRefreshResponseSchema(BaseModel):

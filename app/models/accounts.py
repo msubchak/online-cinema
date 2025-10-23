@@ -43,6 +43,7 @@ class UserGroupModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[UserGroupEnum] = mapped_column(Enum(UserGroupEnum), nullable=False, unique=True)
+    users: Mapped[List["UserModel"]] = relationship("UserModel", back_populates="group")
 
 
 class UserModel(Base):
@@ -59,6 +60,11 @@ class UserModel(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
     group_id: Mapped[int] = mapped_column(ForeignKey("user_groups.id", ondelete="CASCADE"), nullable=False)
+    group: Mapped["UserGroupModel"] = relationship(
+        "UserGroupModel",
+        back_populates="users",
+        lazy="selectin"
+    )
 
     orders: Mapped[List["OrdersModel"]] = relationship(
         "OrdersModel",
@@ -66,22 +72,26 @@ class UserModel(Base):
         cascade="all, delete-orphan"
     )
 
+
     activation_token: Mapped[Optional["ActivationTokenModel"]] = relationship(
         "ActivationTokenModel",
         back_populates="user",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy="selectin"
     )
 
     password_reset_token: Mapped[Optional["PasswordResetTokenModel"]] = relationship(
         "PasswordResetTokenModel",
         back_populates="user",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy="selectin"
     )
 
     refresh_tokens: Mapped[List["RefreshTokenModel"]] = relationship(
         "RefreshTokenModel",
         back_populates="user",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy="selectin"
     )
 
     def __repr__(self):
@@ -149,7 +159,10 @@ class TokenBaseModel(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     def is_expired(self) -> bool:
-        return datetime.now(timezone.utc) > self.expires_at
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) > expires
 
 
 class ActivationTokenModel(TokenBaseModel):
