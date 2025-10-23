@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.models import DirectorModel
 from app.schemas.directors import DirectorsListResponseSchema, DirectorsListItemSchema, DirectorsCreateSchemas, \
-    DirectorsDetailSchema
+    DirectorsDetailSchema, DirectorsUpdateSchema
 
 router = APIRouter()
 
@@ -131,3 +131,54 @@ async def get_director_by_id(
         )
 
     return DirectorsDetailSchema.model_validate(director)
+
+
+@router.patch(
+    "/{director_id}",
+    response_model=DirectorsDetailSchema,
+    summary="Update a director",
+    description="Updates a specific director by their unique ID. Only provided fields will be updated.",
+    status_code=status.HTTP_200_OK,
+)
+async def update_director(
+        director_id: int,
+        director_data: DirectorsUpdateSchema,
+        db: AsyncSession = Depends(get_db),
+) -> DirectorsDetailSchema:
+    stmt = select(DirectorModel).where(DirectorModel.id == director_id)
+    result = await db.execute(stmt)
+    director = result.scalars().first()
+
+    if not director:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Director with ID {director_id} not found",
+        )
+
+    if director_data.name:
+        existing_stmt = select(DirectorModel).where(
+            DirectorModel.name == director_data.name,
+            DirectorModel.id != director_id
+        )
+        existing_result = await db.execute(existing_stmt)
+        if existing_result.scalars().first():
+            raise HTTPException(
+                status_code=409,
+                detail=f"Director with name '{director_data.name}' already exist"
+            )
+
+    for field, value in director_data.model_dump(exclude_unset=True).items():
+        setattr(director, field, value)
+
+    try:
+        await db.commit()
+        await db.refresh(director)
+
+        return DirectorsDetailSchema.model_validate(director)
+
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to update director due to database constraint violation"
+        )
