@@ -182,3 +182,29 @@ async def update_director(
             status_code=400,
             detail="Failed to update director due to database constraint violation"
         )
+
+
+@router.delete(
+    "/{director_id}",
+    summary="Delete a director",
+    description="Deletes a specific director by their unique ID.",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_director(
+        director_id: int,
+        db: AsyncSession = Depends(get_db),
+):
+    stmt = select(DirectorModel).where(DirectorModel.id == director_id)
+    result = await db.execute(stmt)
+    director = result.scalars().first()
+
+    if not director:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Director with ID {director_id} not found",
+        )
+
+    await db.delete(director)
+    await db.commit()
+
+    return
