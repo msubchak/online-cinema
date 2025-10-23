@@ -1,10 +1,13 @@
+from sqlite3 import IntegrityError
+
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models import DirectorModel
-from app.schemas.directors import DirectorsListResponseSchema, DirectorsListItemSchema
+from app.schemas.directors import DirectorsListResponseSchema, DirectorsListItemSchema, DirectorsCreateSchemas, \
+    DirectorsDetailSchema
 
 router = APIRouter()
 
@@ -14,6 +17,7 @@ router = APIRouter()
     response_model=DirectorsListResponseSchema,
     summary="Retrieve all directors",
     description="Returns a paginated list of all directors with navigation links for browsing through pages.",
+    status_code=status.HTTP_200_OK,
 )
 async def get_directors(
         page: int = Query(1, ge=1),
@@ -63,3 +67,43 @@ async def get_directors(
         total_pages=total_pages,
         total_items=total_items,
     )
+
+
+@router.post(
+    "/",
+    response_model=DirectorsDetailSchema,
+    summary="Create a new director",
+    description="Creates a new director with a unique name. Returns the created director details.",
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_director(
+        director_data: DirectorsCreateSchemas,
+        db: AsyncSession = Depends(get_db),
+) -> DirectorsDetailSchema:
+    existing_stmt = select(DirectorModel).where(
+        DirectorModel.name == director_data.name
+    )
+    result = await db.execute(existing_stmt)
+    directors = result.scalars().all()
+
+    if directors:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Director with name '{director_data.name}' already exists",
+        )
+
+    try:
+        director = DirectorModel(
+            name=director_data.name,
+        )
+        db.add(director)
+        await db.commit()
+        await db.refresh(director)
+
+        return DirectorsDetailSchema.model_validate(director)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Failed to create director due to database constraint violation"
+        )
