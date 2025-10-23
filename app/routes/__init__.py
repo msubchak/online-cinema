@@ -5,3 +5,4 @@ from app.routes.stars import router as stars_router
 from app.routes.cart import router as cart_router
 from app.routes.order import router as order_router
 from app.routes.payments import router as payments_router
+from app.routes.directors import router as directors_router

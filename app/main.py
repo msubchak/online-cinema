@@ -7,6 +7,7 @@ from app.routes import (
     cart_router,
     order_router,
     payments_router,
+    directors_router,
 )
 
 app = FastAPI(
@@ -21,6 +22,7 @@ app.include_router(accounts_router, prefix=f"{api_version_prefix}/accounts", tag
 app.include_router(movies_router, prefix=f"{api_version_prefix}/movies", tags=["movies"])
 app.include_router(genres_router, prefix=f"{api_version_prefix}/genres", tags=["genres"])
 app.include_router(stars_router, prefix=f"{api_version_prefix}/stars", tags=["stars"])
+app.include_router(directors_router, prefix=f"{api_version_prefix}/directors", tags=["directors"])
 app.include_router(cart_router, prefix=f"{api_version_prefix}/cart", tags=["cart"])
 app.include_router(order_router, prefix=f"{api_version_prefix}/order", tags=["orders"])
 app.include_router(payments_router, prefix=f"{api_version_prefix}/payment", tags=["payments"])
