@@ -17,8 +17,8 @@ router = APIRouter()
 @router.get(
     "/",
     response_model=CartResponseSchema,
-    summary="Get current user's cart",
-    description="Returns the shopping cart of the authenticated user",
+    summary="Get the current user's cart",
+    description="Retrieve the shopping cart of the authenticated user, including all added movies.",
     status_code=status.HTTP_200_OK,
 )
 async def get_cart_by_user_id(
@@ -32,7 +32,7 @@ async def get_cart_by_user_id(
     if not cart:
         raise HTTPException(
             status_code=404,
-            detail="No cart found",
+            detail=f"No cart found for user with ID '{current_user.id}'.",
         )
 
     movies_list = []
@@ -55,7 +55,7 @@ async def get_cart_by_user_id(
 @router.post(
     "/",
     summary="Add a movie to the cart",
-    description="Adds a new movie to the authenticated user's cart",
+    description="Add a selected movie to the authenticated user's shopping cart.",
     status_code=status.HTTP_201_CREATED,
 )
 async def add_cart_item(
@@ -70,7 +70,7 @@ async def add_cart_item(
     if not movie:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No movie found",
+            detail=f"Movie with ID '{movie_id}' not found.",
         )
 
     stmt_cart = select(CartModel).where(CartModel.user_id == current_user.id)
@@ -86,7 +86,7 @@ async def add_cart_item(
     if any(item.movie_id == movie_id for item in cart.items):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Movie already added to the cart",
+            detail="This movie is already present in your cart.",
         )
 
     cart_item = CartItemModel(
@@ -119,7 +119,7 @@ async def delete_movie_from_cart(
     if not cart:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No cart found",
+            detail="Cart not found for the current user.",
         )
 
     stmt_movie = select(CartItemModel).where(
@@ -132,8 +132,10 @@ async def delete_movie_from_cart(
     if not movie:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No movie found",
+            detail=f"Movie with ID {movie_id} was not found in your cart.",
         )
 
     await db.delete(movie)
     await db.commit()
+
+    return

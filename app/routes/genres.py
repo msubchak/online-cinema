@@ -14,8 +14,9 @@ router = APIRouter()
 @router.get(
     "/",
     response_model=GenresListResponseSchema,
-    summary="Get a paginated list of genres",
-    description="Get a paginated list of genres",
+    summary="Retrieve a paginated list of genres",
+    description="Return a paginated list of all available genres.",
+    status_code=status.HTTP_200_OK,
 )
 async def get_genres(
         page: int = Query(1, ge=1),
@@ -31,7 +32,7 @@ async def get_genres(
     if not total_items:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No genres found",
+            detail="No genres found in the database.",
         )
 
     order_by = GenreModel.default_order_by()
@@ -47,7 +48,7 @@ async def get_genres(
     if not genres:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No genres found",
+            detail="No genres found in the database.",
         )
 
     genres_list = [GenresListItemSchema.model_validate(genre) for genre in genres]
@@ -67,11 +68,36 @@ async def get_genres(
     )
 
 
+@router.get(
+    "/{genre_id}/",
+    response_model=GenresDetailSchema,
+    summary="Get genre details by ID",
+    description="Retrieve detailed information about a genre by its unique ID.",
+    status_code=status.HTTP_200_OK,
+)
+async def get_genre_by_id(
+        genre_id: int,
+        db: AsyncSession = Depends(get_db),
+) -> GenresDetailSchema:
+    stmt = select(GenreModel).where(GenreModel.id == genre_id)
+    result = await db.execute(stmt)
+    genre = result.scalars().first()
+
+    if not genre:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Genre with ID '{genre_id}' not found.",
+        )
+
+    return GenresDetailSchema.model_validate(genre)
+
+
 @router.post(
     "/",
     response_model=GenresDetailSchema,
-    summary="Add a new genre",
-    description="Add a new genre",
+    summary="Create a new genre",
+    description="Add a new genre to the database. If a genre with the same name already exists, a 409 error will be returned.",
+    status_code=status.HTTP_201_CREATED,
 )
 async def create_genre(
         genre_data: GenresCreateSchemas,
@@ -86,7 +112,7 @@ async def create_genre(
     if existing_genre:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A genre with the same name already exists",
+            detail=f"The genre '{genre_data.name}' already exists.",
         )
 
     try:
@@ -103,37 +129,15 @@ async def create_genre(
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid input data."
+            detail="Invalid genre data. Please verify your input and try again."
         )
-
-
-@router.get(
-    "/{genre_id}/",
-    response_model=GenresDetailSchema,
-    summary="Get genre details by ID.",
-    description="Get genre details by ID",
-)
-async def get_genre_by_id(
-        genre_id: int,
-        db: AsyncSession = Depends(get_db),
-) -> GenresDetailSchema:
-    stmt = select(GenreModel).where(GenreModel.id == genre_id)
-    result = await db.execute(stmt)
-    genre = result.scalars().first()
-
-    if not genre:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No genres found",
-        )
-
-    return GenresDetailSchema.model_validate(genre)
 
 
 @router.patch(
     "/{genre_id}",
-    summary="Update genre detail by ID",
-    description="Update details of a specific genre by its unique ID."
+    summary="Update a genre by ID",
+    description="Update one or more fields of an existing genre using its unique ID.",
+    status_code=status.HTTP_200_OK,
 )
 async def update_genre(
         genre_id: int,
@@ -147,7 +151,7 @@ async def update_genre(
     if not genre:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No genres found",
+            detail=f"Genre with ID '{genre_id}' not found.",
         )
 
     for field, value in genre_data.model_dump(exclude_unset=True).items():
@@ -160,22 +164,28 @@ async def update_genre(
         )
         existing_result = await db.execute(existing_stmt)
         if existing_result.scalars().first():
-            raise HTTPException(status_code=409, detail="A genre with the same name already exists")
+            raise HTTPException(
+                status_code=409,
+                detail=f"A genre named '{genre_data.name}' already exists."
+            )
 
     try:
         await db.commit()
         await db.refresh(genre)
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="Invalid input data.")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or duplicate genre data."
+        )
 
     return {"detail": "Genre updated successfully."}
 
 
 @router.delete(
     "/{genre_id}",
-    summary="Delete genre by ID",
-    description="Delete a specific genre by its unique ID.",
+    summary="Delete a genre by ID",
+    description="Remove a genre from the database by its unique ID.",
     status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_genre(
@@ -189,7 +199,7 @@ async def delete_genre(
     if not genre:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No genres found",
+            detail=f"Genre with ID '{genre_id}' not found.",
         )
 
     await db.delete(genre)

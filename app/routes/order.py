@@ -143,13 +143,13 @@ async def pay_order(
     if not order:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Order not found",
+            detail=f"Order with ID '{order_id}' not found.",
         )
 
     if order.status == StatusEnum.PAID:
         raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Order is already paid",
+        detail=f"Order '{order.id}' has already been paid.",
     )
 
     order.status = StatusEnum.PAID
@@ -180,13 +180,13 @@ async def cancel_order(
     if not order:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Order not found",
+            detail=f"Order with ID '{order_id}' not found.",
         )
 
     if order.status == StatusEnum.CANCELED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Order is already canceled",
+            detail=f"Order '{order.id}' is already canceled.",
         )
 
     if order.status == StatusEnum.PAID:
@@ -199,7 +199,7 @@ async def cancel_order(
     await db.commit()
     await db.refresh(order)
 
-    return {"message": f"Order {order.id} has been canceled."}
+    return {"detail": f"Order '{order.id}' has been successfully canceled."}
 
 
 @router.get(
@@ -238,7 +238,7 @@ async def get_orders_for_admin(
     if not orders:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No orders found",
+            detail="No orders found matching the specified filters.",
         )
 
     order_list = []

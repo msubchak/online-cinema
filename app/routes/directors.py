@@ -69,6 +69,30 @@ async def get_directors(
     )
 
 
+@router.get(
+    "/{director_id}",
+    response_model=DirectorsDetailSchema,
+    summary="Get director by ID",
+    description="Retrieves detailed information about a specific director by their unique ID.",
+    status_code=status.HTTP_200_OK,
+)
+async def get_director_by_id(
+        director_id: int,
+        db: AsyncSession = Depends(get_db),
+) -> DirectorsDetailSchema:
+    stmt = select(DirectorModel).where(DirectorModel.id == director_id)
+    result = await db.execute(stmt)
+    director = result.scalars().first()
+
+    if not director:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Director with ID {director_id} not found",
+        )
+
+    return DirectorsDetailSchema.model_validate(director)
+
+
 @router.post(
     "/",
     response_model=DirectorsDetailSchema,
@@ -107,30 +131,6 @@ async def create_director(
             status_code=status.HTTP_409_CONFLICT,
             detail="Failed to create director due to database constraint violation"
         )
-
-
-@router.get(
-    "/{director_id}",
-    response_model=DirectorsDetailSchema,
-    summary="Get director by ID",
-    description="Retrieves detailed information about a specific director by their unique ID.",
-    status_code=status.HTTP_200_OK,
-)
-async def get_director_by_id(
-        director_id: int,
-        db: AsyncSession = Depends(get_db),
-) -> DirectorsDetailSchema:
-    stmt = select(DirectorModel).where(DirectorModel.id == director_id)
-    result = await db.execute(stmt)
-    director = result.scalars().first()
-
-    if not director:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Director with ID {director_id} not found",
-        )
-
-    return DirectorsDetailSchema.model_validate(director)
 
 
 @router.patch(
