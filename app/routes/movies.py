@@ -18,8 +18,9 @@ router = APIRouter()
 @router.get(
     "/",
     response_model=MovieListResponseSchema,
-    summary="Get a paginated list of movies",
-    description="Get a paginated list of movies",
+    summary="Retrieve all movies",
+    description="Returns a paginated list of movies with optional filtering, sorting, and search capabilities.",
+    status_code=status.HTTP_200_OK,
 )
 async def get_movie_list(
         page: int = Query(1, ge=1),
@@ -68,7 +69,10 @@ async def get_movie_list(
     total_pages = (total_items + per_page - 1) // per_page
 
     if total_pages == 0 or page > total_pages:
-        raise HTTPException(status_code=404, detail="No movies found.")
+        raise HTTPException(
+            status_code=404,
+            detail="No movies found matching the specified criteria"
+        )
 
     offset = (page - 1) * per_page
     result = await db.execute(
@@ -78,7 +82,7 @@ async def get_movie_list(
     if not movies:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No movies found."
+            detail="No movies found matching the specified criteria"
         )
 
     movie_list = [MovieListItemSchema.model_validate(movie) for movie in movies]
@@ -98,11 +102,48 @@ async def get_movie_list(
     )
 
 
+@router.get(
+    "/{movie_id}",
+    response_model=MovieDetailSchema,
+    summary="Get movie detail by ID",
+    description="Retrieves detailed information about a specific movie including its certification, genres, stars, and directors.",
+    status_code=status.HTTP_200_OK,
+)
+async def get_movie_by_id(
+        movie_id: int,
+        db: AsyncSession = Depends(get_db),
+) -> MovieDetailSchema:
+    stmt = (
+        select(MovieModel)
+        .options(
+            joinedload(MovieModel.certification),
+            joinedload(MovieModel.genres),
+            joinedload(MovieModel.stars),
+            joinedload(MovieModel.directors),
+        )
+    .where(MovieModel.id == movie_id)
+    )
+
+    result = await db.execute(stmt)
+    movie = result.scalars().first()
+
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Movie with ID '{movie_id}' not found."
+        )
+
+    return MovieDetailSchema.model_validate(movie)
+
+
 @router.post(
     "/",
     response_model=MovieDetailSchema,
-    summary="Add a new movie.",
-    description="Add a new movie.",
+    summary="Create a new movie record",
+    description=(
+            "Add a new movie to the database, including its genres, stars, directors, "
+            "and certification. If any of the related entities don’t exist, they’ll be created automatically."
+    ),
     status_code=status.HTTP_201_CREATED,
 )
 async def create_movie(
@@ -120,8 +161,8 @@ async def create_movie(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                f"A movie with the name '{movie_data.name}' and release date "
-                f"'{movie_data.time}' already exists."
+                f"The movie '{movie_data.name}' released on "
+                f"'{movie_data.time}' already exists in the database."
             )
         )
 
@@ -197,47 +238,18 @@ async def create_movie(
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid input data"
+            detail="Invalid movie data. Please check your input and try again."
         )
-
-
-@router.get(
-    "/{movie_id}",
-    response_model=MovieDetailSchema,
-    summary="Get movie detail by ID",
-    description="Fetch detailed information about a specific movie by its unique ID."
-)
-async def get_movie_by_id(
-        movie_id: int,
-        db: AsyncSession = Depends(get_db),
-) -> MovieDetailSchema:
-    stmt = (
-        select(MovieModel)
-        .options(
-            joinedload(MovieModel.certification),
-            joinedload(MovieModel.genres),
-            joinedload(MovieModel.stars),
-            joinedload(MovieModel.directors),
-        )
-    .where(MovieModel.id == movie_id)
-    )
-
-    result = await db.execute(stmt)
-    movie = result.scalars().first()
-
-    if not movie:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Movie with ID '{movie_id}' not found."
-        )
-
-    return MovieDetailSchema.model_validate(movie)
 
 
 @router.patch(
     "/{movie_id}",
-    summary="Update movie detail by ID",
-    description="Update details of a specific movie by its unique ID."
+    summary="Update a movie by ID",
+    description=(
+            "Modify one or more details of an existing movie by its unique ID. "
+            "Only the provided fields will be updated."
+    ),
+    status_code=status.HTTP_200_OK,
 )
 async def update_movie(
         movie_id: int,
@@ -262,7 +274,10 @@ async def update_movie(
         await db.refresh(movie)
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="Invalid input data.")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or duplicate data. Please verify your input."
+        )
 
     return {"detail": "Movie updated successfully."}
 
@@ -270,7 +285,10 @@ async def update_movie(
 @router.delete(
     "/{movie_id}",
     summary="Delete movie by ID",
-    description="Delete a specific movie by its unique ID.",
+    description=(
+            "Remove an existing movie from the database by its unique ID. "
+            "If the movie does not exist, a 404 error will be returned."
+    ),
     status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_movie(

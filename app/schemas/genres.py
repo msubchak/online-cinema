@@ -6,6 +6,10 @@ class GenresListItemSchema(BaseModel):
     id: int
     name: str
 
+    model_config = {
+        "from_attributes": True
+    }
+
 
 class GenresCreateSchemas(BaseModel):
     name: str
@@ -17,10 +21,6 @@ class GenresListResponseSchema(BaseModel):
     next_page: Optional[str]
     total_pages: int
     total_items: int
-
-    model_config = {
-        "from_attributes": True
-    }
 
 
 class GenresDetailSchema(BaseModel):

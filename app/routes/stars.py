@@ -14,8 +14,9 @@ router = APIRouter()
 @router.get(
     "/",
     response_model=StarListResponseSchema,
-    summary="Get a paginated list of stars",
-    description="Get a paginated list of stars",
+    summary="Retrieve a paginated list of stars",
+    description="Return a paginated list of all available stars.",
+    status_code=status.HTTP_200_OK,
 )
 async def get_stars(
         page: int = Query(1, ge=1),
@@ -31,7 +32,7 @@ async def get_stars(
     if not total_items:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No stars found",
+            detail="No stars found in the database.",
         )
 
     stmt = select(StarModel).order_by(StarModel.id).offset(offset).limit(per_page)
@@ -41,7 +42,7 @@ async def get_stars(
     if not stars:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No stars found",
+            detail=f"No stars found on page {page}.",
         )
 
     stars_list = [StarListItemSchema.model_validate(star, from_attributes=True) for star in stars]
@@ -61,11 +62,36 @@ async def get_stars(
     )
 
 
+@router.get(
+    "/{star_id}",
+    response_model=StarDetailSchema,
+    summary="Get star details by ID",
+    description="Retrieve detailed information about a star by its unique ID.",
+    status_code=status.HTTP_200_OK,
+)
+async def get_star_by_id(
+        star_id: int,
+        db: AsyncSession = Depends(get_db),
+) -> StarDetailSchema:
+    stmt = select(StarModel).where(StarModel.id == star_id)
+    result = await db.execute(stmt)
+    star = result.scalars().first()
+
+    if not star:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Star with ID '{star_id}' not found.",
+        )
+
+    return StarDetailSchema.model_validate(star, from_attributes=True)
+
+
 @router.post(
     "/",
     response_model=StarDetailSchema,
-    summary="Add a new star",
-    description="Add a new star",
+    summary="Create a new star",
+    description="Add a new star to the database. If a star with the same name already exists, a 409 error will be returned.",
+    status_code=status.HTTP_201_CREATED,
 )
 async def create_star(
         star_data: StarCreateSchemas,
@@ -80,7 +106,7 @@ async def create_star(
     if existing_star:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A star with the same name already exists",
+            detail=f"The star '{star_data.name}' already exists.",
         )
 
     try:
@@ -96,37 +122,15 @@ async def create_star(
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid input data."
+            detail="Invalid star data. Please verify your input and try again."
         )
-
-
-@router.get(
-    "/{star_id}",
-    response_model=StarDetailSchema,
-    summary="Get star details by ID.",
-    description="Get star details by ID",
-)
-async def get_star_by_id(
-        star_id: int,
-        db: AsyncSession = Depends(get_db),
-) -> StarDetailSchema:
-    stmt = select(StarModel).where(StarModel.id == star_id)
-    result = await db.execute(stmt)
-    star = result.scalars().first()
-
-    if not star:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No star found",
-        )
-
-    return StarDetailSchema.model_validate(star, from_attributes=True)
 
 
 @router.patch(
     "/{star_id}",
-    summary="Update star detail by ID",
-    description="Update details of a specific star by its unique ID."
+    summary="Update a star by ID",
+    description="Update one or more fields of an existing star using its unique ID.",
+    status_code=status.HTTP_200_OK,
 )
 async def update_star(
         star_id: int,
@@ -140,7 +144,7 @@ async def update_star(
     if not star:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No star found",
+            detail=f"Star with ID '{star_id}' not found.",
         )
 
     for field, value in star_data.model_dump(exclude_unset=True).items():
@@ -153,22 +157,26 @@ async def update_star(
         )
         existing_result = await db.execute(existing_stmt)
         if existing_result.scalars().first():
-            raise HTTPException(status_code=409, detail="A star with the same name already exists")
+            raise HTTPException(
+                status_code=409,
+                detail=f"A star named '{star_data.name}' already exists.",
+            )
 
     try:
         await db.commit()
         await db.refresh(star)
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="Invalid input data.")
+        raise HTTPException(status_code=400, detail="Invalid or duplicate star data.")
 
     return {"detail": "Star updated successfully."}
 
 
 @router.delete(
     "/{star_id}",
-    summary="Delete star by ID.",
-    description="Delete a specific star by its unique ID."
+    summary="Delete a star by ID",
+    description="Remove a star from the database by its unique ID.",
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_star(
         star_id: int,
@@ -181,7 +189,7 @@ async def delete_star(
     if not star:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No star found",
+            detail=f"Star with ID '{star_id}' not found.",
         )
 
     await db.delete(star)
