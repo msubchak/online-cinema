@@ -8,9 +8,11 @@ from sqlalchemy.orm import joinedload
 
 from app import models
 from app.core.database import get_db
+from app.models import OrderItemModel
 from app.models.movies import MovieModel, CertificationModel, GenreModel, StarModel, DirectorModel
 from app.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieCreateSchema, MovieDetailSchema, \
     MovieUpdateSchema
+from app.security.auth_dependencies import moderator_required
 
 router = APIRouter()
 
@@ -37,19 +39,19 @@ async def get_movie_list(
 ) -> MovieListResponseSchema:
     query = select(MovieModel)
 
-    #filter
+    # filter
     if year is not None:
         query = query.where(MovieModel.year == year)
     if imdb is not None:
         query = query.where(MovieModel.imdb == imdb)
 
-    #sort
+    # sort
     if not hasattr(MovieModel, sort_by):
         raise HTTPException(status_code=400, detail=f"Invalid sort field: {sort_by}")
     column = getattr(MovieModel, sort_by)
     query = query.order_by(column.desc() if order == "desc" else column)
 
-    #search
+    # search
     if search:
         query = query.where(
             or_(
@@ -60,7 +62,7 @@ async def get_movie_list(
             )
         )
 
-    #pagination
+    # pagination
     total_items_result = await db.execute(
         select(func.count()).select_from(query.subquery())
     )
@@ -121,7 +123,7 @@ async def get_movie_by_id(
             joinedload(MovieModel.stars),
             joinedload(MovieModel.directors),
         )
-    .where(MovieModel.id == movie_id)
+        .where(MovieModel.id == movie_id)
     )
 
     result = await db.execute(stmt)
@@ -148,6 +150,7 @@ async def get_movie_by_id(
 )
 async def create_movie(
         movie_data: MovieCreateSchema,
+        current_user=Depends(moderator_required),
         db: AsyncSession = Depends(get_db),
 ) -> MovieDetailSchema:
     existing_stmt = select(MovieModel).where(
@@ -254,6 +257,7 @@ async def create_movie(
 async def update_movie(
         movie_id: int,
         movie_data: MovieUpdateSchema,
+        current_user=Depends(moderator_required),
         db: AsyncSession = Depends(get_db),
 ):
     stmt = select(MovieModel).where(MovieModel.id == movie_id)
@@ -293,6 +297,7 @@ async def update_movie(
 )
 async def delete_movie(
         movie_id: int,
+        current_user=Depends(moderator_required),
         db: AsyncSession = Depends(get_db),
 ):
     stmt = select(MovieModel).where(MovieModel.id == movie_id)
@@ -303,6 +308,16 @@ async def delete_movie(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Movie with ID '{movie_id}' not found."
+        )
+
+    stmt_order = select(OrderItemModel).where(OrderItemModel.movie_id == movie_id)
+    result = await db.execute(stmt_order)
+    order = result.scalars().first()
+
+    if order:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete a movie that has been purchased by at least one user."
         )
 
     await db.delete(movie)

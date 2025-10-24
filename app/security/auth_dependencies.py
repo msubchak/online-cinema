@@ -44,9 +44,18 @@ async def get_current_user(
 
 
 async def admin_required(current_user: UserModel = Depends(get_current_user)) -> UserModel:
-    if not current_user.has_group(UserGroupEnum.ADMIN):
+    if current_user.group.name != UserGroupEnum.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required."
+        )
+    return current_user
+
+
+async def moderator_required(current_user: UserModel = Depends(get_current_user)) -> UserModel:
+    if current_user.group.name not in [UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Moderator or admin privileges required."
         )
     return current_user
