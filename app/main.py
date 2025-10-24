@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+
 from app.routes import (
     accounts_router,
     movies_router,
@@ -9,12 +11,31 @@ from app.routes import (
     payments_router,
     directors_router,
 )
+from app.security.auth_dependencies import get_current_user
 
 app = FastAPI(
     title="Online cinema",
     version="1.0",
-    description="API for managing movies, users, and orders in an online cinema."
+    description="API for managing movies, users, and orders in an online cinema.",
+    docs_url=None,
+    redoc_url=None
 )
+
+@app.get("/docs", include_in_schema=False)
+async def get_protected_docs(current_user=Depends(get_current_user)):
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title="Protected Swagger UI",
+        swagger_ui_parameters={"persistAuthorization": True},
+    )
+
+@app.get("/redoc", include_in_schema=False)
+async def get_protected_redoc(current_user=Depends(get_current_user)):
+    return get_redoc_html(
+        openapi_url="/openapi.json",
+        title="Protected ReDoc"
+    )
+
 
 api_version_prefix = "/api/v1"
 
