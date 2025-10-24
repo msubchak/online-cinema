@@ -91,12 +91,12 @@ async def create_payments(
             currency="uah",
             payment_method_types=["card"]
         )
-    except stripe.error.InvalidRequestError as e:
+    except stripe.InvalidRequestError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Payment method not available. Try a different payment method."
         )
-    except stripe.error.StripeError as e:
+    except stripe.StripeError as e:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Payment processing error. Please try again later."
@@ -161,7 +161,7 @@ async def stripe_webhook(
         )
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError:
+    except stripe.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid signature")
 
     if event["type"] == "payment_intent.succeeded":
@@ -197,14 +197,14 @@ async def stripe_webhook(
 async def get_payments_by_user(
         current_user: UserModel = Depends(get_current_user),
         db: AsyncSession = Depends(get_db),
-        status: Optional[StatusEnum] = Query(None, description="Filter by payment status"),
+        pay_status: Optional[StatusEnum] = Query(None, description="Filter by payment status"),
         start_date: Optional[date] = Query(None, description="Filter by start date"),
         end_date: Optional[date] = Query(None, description="Filter by end date"),
 ) -> List[PaymentResponseSchema]:
     stmt = select(PaymentModel).where(PaymentModel.user_id == current_user.id)
 
-    if status is not None:
-        stmt = stmt.where(PaymentModel.status == status)
+    if pay_status is not None:
+        stmt = stmt.where(PaymentModel.status == pay_status)
     if start_date is not None:
         stmt = stmt.where(PaymentModel.created_at >= start_date)
     if end_date is not None:
@@ -234,7 +234,7 @@ async def get_payments_by_admin(
         db: AsyncSession = Depends(get_db),
         admin_user: UserModel = Depends(admin_required),
         user_id: Optional[int] = Query(None, description="Filter by user id"),
-        status: Optional[StatusEnum] = Query(None, description="Filter by payment status"),
+        pay_status: Optional[StatusEnum] = Query(None, description="Filter by payment status"),
         start_date: Optional[date] = Query(None, description="Filter by start date"),
         end_date: Optional[date] = Query(None, description="Filter by end date"),
 ) -> List[PaymentResponseSchema]:
@@ -242,8 +242,8 @@ async def get_payments_by_admin(
 
     if user_id is not None:
         stmt = stmt.where(PaymentModel.user_id == user_id)
-    if status is not None:
-        stmt = stmt.where(PaymentModel.status == status)
+    if pay_status is not None:
+        stmt = stmt.where(PaymentModel.status == pay_status)
     if start_date is not None:
         stmt = stmt.where(PaymentModel.created_at >= start_date)
     if end_date is not None:

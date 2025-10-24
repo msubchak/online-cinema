@@ -88,18 +88,20 @@ async def create_order(
         total_amount=total_amount
     )
 
-    async with db.begin():
-        db.add(new_order)
+    db.add(new_order)
 
-        for item in cart_items:
-            db.add(OrderItemModel(
-                order=new_order,
-                movie_id=item.movie_id,
-                price_at_order=item.movie.price
-            ))
+    for item in cart_items:
+        db.add(OrderItemModel(
+            order=new_order,
+            movie_id=item.movie_id,
+            price_at_order=item.movie.price
+        ))
 
-        for item in cart_items:
-            await db.delete(item)
+    for item in cart_items:
+        await db.delete(item)
+
+    await db.commit()
+    await db.refresh(new_order)
 
     items = []
     for item in cart_items:
@@ -219,7 +221,7 @@ async def get_orders_for_admin(
     user_id: Optional[int] = Query(None, description="Filter by user id"),
     start_date: Optional[date] = Query(None, description="Filter by start date"),
     end_date: Optional[date] = Query(None, description="Filter by end date"),
-    status: Optional[StatusEnum] = Query(None, description="Filter by order status"),
+    order_status: Optional[StatusEnum] = Query(None, description="Filter by order status"),
 ) -> List[OrderResponseSchema]:
     stmt = select(OrdersModel)
 
@@ -229,8 +231,8 @@ async def get_orders_for_admin(
         stmt = stmt.where(OrdersModel.created_at >= start_date)
     if end_date is not None:
         stmt = stmt.where(OrdersModel.created_at <= end_date)
-    if status is not None:
-        stmt = stmt.where(OrdersModel.status == status)
+    if order_status is not None:
+        stmt = stmt.where(OrdersModel.status == order_status)
 
     result = await db.execute(stmt)
     orders = result.scalars().all()

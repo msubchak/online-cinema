@@ -23,6 +23,7 @@ class CartModel(Base):
         "CartItemModel",
         back_populates="cart",
         cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
 
@@ -40,8 +41,12 @@ class CartItemModel(Base):
     cart: Mapped["CartModel"] = relationship(
         "CartModel",
         back_populates="items",
+        lazy="selectin",
     )
-    movie: Mapped["MovieModel"] = relationship("MovieModel",)
+    movie: Mapped["MovieModel"] = relationship(
+        "MovieModel",
+        lazy="selectin",
+    )
 
     __table_args__ = (
         UniqueConstraint("cart_id", "movie_id", name="unique_cart_movie"),

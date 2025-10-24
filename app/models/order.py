@@ -37,8 +37,12 @@ class OrdersModel(Base):
         "OrderItemModel",
         back_populates="order",
         cascade="all, delete-orphan",
+        lazy="selectin",
     )
-    user: Mapped["UserModel"] = relationship(back_populates="orders")
+    user: Mapped["UserModel"] = relationship(
+        back_populates="orders",
+        lazy="selectin",
+    )
 
 
 class OrderItemModel(Base):
@@ -49,5 +53,11 @@ class OrderItemModel(Base):
     movie_id: Mapped[int] = mapped_column(ForeignKey("movies.id"), nullable=False)
     price_at_order: Mapped[float] = mapped_column(DECIMAL(10,2), nullable=False)
 
-    order: Mapped["OrdersModel"] = relationship(back_populates="items")
-    movie: Mapped["MovieModel"] = relationship(back_populates="items")
+    order: Mapped["OrdersModel"] = relationship(
+        back_populates="items",
+        lazy="selectin",
+    )
+    movie: Mapped["MovieModel"] = relationship(
+        back_populates="items",
+        lazy="selectin",
+    )

@@ -107,27 +107,32 @@ class MovieModel(Base):
     items: Mapped[list["OrderItemModel"]] = relationship(
         "OrderItemModel",
         back_populates="movie",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
     certification: Mapped["CertificationModel"] = relationship(
         "CertificationModel",
         back_populates="movies",
+        lazy="selectin",
     )
     genres: Mapped[list["GenreModel"]] = relationship(
         "GenreModel",
         secondary=movie_genres,
         back_populates="movies",
+        lazy="selectin",
     )
     stars: Mapped[list["StarModel"]] = relationship(
         "StarModel",
         secondary=movie_stars,
         back_populates="movies",
+        lazy="selectin",
     )
     directors: Mapped[list["DirectorModel"]] = relationship(
         "DirectorModel",
         secondary=movie_directors,
         back_populates="movies",
+        lazy="selectin",
     )
 
     __table_args__ = (
