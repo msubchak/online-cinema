@@ -5,8 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.movies import GenreModel
-from app.schemas.genres import GenresListResponseSchema, GenresListItemSchema, GenresCreateSchemas, GenresDetailSchema, \
+from app.schemas.genres import (
+    GenresListResponseSchema,
+    GenresListItemSchema,
+    GenresCreateSchemas,
+    GenresDetailSchema,
     GenreUpdateSchema
+)
 
 router = APIRouter()
 
@@ -51,17 +56,22 @@ async def get_genres(
             detail="No genres found in the database.",
         )
 
-    genres_list = [GenresListItemSchema.model_validate(genre) for genre in genres]
+    genres_list = [
+        GenresListItemSchema.model_validate(genre)
+        for genre in genres
+    ]
 
     total_pages = (total_items + per_page - 1) // per_page
 
     return GenresListResponseSchema(
         genres=genres_list,
         prev_page=(
-            f"/genres/?page={page - 1}&per_page={per_page}" if page > 1 else None
+            f"/genres/?page={page - 1}&per_page={per_page}"
+            if page > 1 else None
         ),
         next_page=(
-            f"/genres/?page={page + 1}&per_page={per_page}" if page < total_pages else None
+            f"/genres/?page={page + 1}&per_page={per_page}"
+            if page < total_pages else None
         ),
         total_pages=total_pages,
         total_items=total_items,
@@ -72,7 +82,8 @@ async def get_genres(
     "/{genre_id}/",
     response_model=GenresDetailSchema,
     summary="Get genre details by ID",
-    description="Retrieve detailed information about a genre by its unique ID.",
+    description="Retrieve detailed information "
+                "about a genre by its unique ID.",
     status_code=status.HTTP_200_OK,
 )
 async def get_genre_by_id(
@@ -96,7 +107,9 @@ async def get_genre_by_id(
     "/",
     response_model=GenresDetailSchema,
     summary="Create a new genre",
-    description="Add a new genre to the database. If a genre with the same name already exists, a 409 error will be returned.",
+    description="Add a new genre to the database. "
+                "If a genre with the same name already exists, "
+                "a 409 error will be returned.",
     status_code=status.HTTP_201_CREATED,
 )
 async def create_genre(
@@ -116,27 +129,29 @@ async def create_genre(
         )
 
     try:
-         genre = GenreModel(
-             name=genre_data.name
-         )
-         db.add(genre)
-         await db.commit()
-         await db.refresh(genre)
+        genre = GenreModel(
+            name=genre_data.name
+        )
+        db.add(genre)
+        await db.commit()
+        await db.refresh(genre)
 
-         return GenresDetailSchema.model_validate(genre)
+        return GenresDetailSchema.model_validate(genre)
 
     except IntegrityError:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid genre data. Please verify your input and try again."
+            detail="Invalid genre data. "
+                   "Please verify your input and try again."
         )
 
 
 @router.patch(
     "/{genre_id}",
     summary="Update a genre by ID",
-    description="Update one or more fields of an existing genre using its unique ID.",
+    description="Update one or more fields of "
+                "an existing genre using its unique ID.",
     status_code=status.HTTP_200_OK,
 )
 async def update_genre(

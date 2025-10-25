@@ -5,8 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.movies import StarModel
-from app.schemas.stars import StarListResponseSchema, StarListItemSchema, StarDetailSchema, StarCreateSchemas, \
+from app.schemas.stars import (
+    StarListResponseSchema,
+    StarListItemSchema,
+    StarDetailSchema,
+    StarCreateSchemas,
     StarUpdateSchema
+)
 
 router = APIRouter()
 
@@ -35,7 +40,10 @@ async def get_stars(
             detail="No stars found in the database.",
         )
 
-    stmt = select(StarModel).order_by(StarModel.id).offset(offset).limit(per_page)
+    stmt = (select(StarModel)
+            .order_by(StarModel.id)
+            .offset(offset)
+            .limit(per_page))
     result_stars = await db.execute(stmt)
     stars = result_stars.scalars().all()
 
@@ -45,17 +53,23 @@ async def get_stars(
             detail=f"No stars found on page {page}.",
         )
 
-    stars_list = [StarListItemSchema.model_validate(star, from_attributes=True) for star in stars]
+    stars_list = [
+        StarListItemSchema.model_validate(
+            star, from_attributes=True
+        ) for star in stars
+    ]
 
     total_pages = (total_items + per_page - 1) // per_page
 
     return StarListResponseSchema(
         stars=stars_list,
         prev_page=(
-            f"/stars/?page={page - 1}&per_page={per_page}" if page > 1 else None
+            f"/stars/?page={page - 1}&per_page={per_page}"
+            if page > 1 else None
         ),
         next_page=(
-            f"/stars/?page={page + 1}&per_page={per_page}" if page < total_pages else None
+            f"/stars/?page={page + 1}&per_page={per_page}"
+            if page < total_pages else None
         ),
         total_pages=total_pages,
         total_items=total_items,
@@ -90,7 +104,9 @@ async def get_star_by_id(
     "/",
     response_model=StarDetailSchema,
     summary="Create a new star",
-    description="Add a new star to the database. If a star with the same name already exists, a 409 error will be returned.",
+    description="Add a new star to the database. "
+                "If a star with the same name already exists, "
+                "a 409 error will be returned.",
     status_code=status.HTTP_201_CREATED,
 )
 async def create_star(
@@ -129,7 +145,8 @@ async def create_star(
 @router.patch(
     "/{star_id}",
     summary="Update a star by ID",
-    description="Update one or more fields of an existing star using its unique ID.",
+    description="Update one or more fields of an existing star "
+                "using its unique ID.",
     status_code=status.HTTP_200_OK,
 )
 async def update_star(
@@ -167,7 +184,10 @@ async def update_star(
         await db.refresh(star)
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="Invalid or duplicate star data.")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or duplicate star data."
+        )
 
     return {"detail": "Star updated successfully."}
 

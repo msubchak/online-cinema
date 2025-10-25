@@ -7,6 +7,7 @@ from sqlalchemy import (
     func,
     DateTime,
 )
+from app.models.movies import MovieModel
 
 
 class CartModel(Base):
@@ -31,8 +32,14 @@ class CartItemModel(Base):
     __tablename__ = "cart_items"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    cart_id: Mapped[int] = mapped_column(ForeignKey("carts.id"), nullable=False)
-    movie_id: Mapped[int] = mapped_column(ForeignKey("movies.id"), nullable=False)
+    cart_id: Mapped[int] = mapped_column(
+        ForeignKey("carts.id"),
+        nullable=False
+    )
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id"),
+        nullable=False
+    )
     added_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now()

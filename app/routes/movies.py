@@ -9,9 +9,20 @@ from sqlalchemy.orm import joinedload
 from app import models
 from app.core.database import get_db
 from app.models import OrderItemModel
-from app.models.movies import MovieModel, CertificationModel, GenreModel, StarModel, DirectorModel
-from app.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieCreateSchema, MovieDetailSchema, \
+from app.models.movies import (
+    MovieModel,
+    CertificationModel,
+    GenreModel,
+    StarModel,
+    DirectorModel
+)
+from app.schemas.movies import (
+    MovieListResponseSchema,
+    MovieListItemSchema,
+    MovieCreateSchema,
+    MovieDetailSchema,
     MovieUpdateSchema
+)
 from app.security.auth_dependencies import moderator_required
 
 router = APIRouter()
@@ -21,15 +32,23 @@ router = APIRouter()
     "/",
     response_model=MovieListResponseSchema,
     summary="Retrieve all movies",
-    description="Returns a paginated list of movies with optional filtering, sorting, and search capabilities.",
+    description="Returns a paginated list of movies "
+                "with optional filtering, sorting, "
+                "and search capabilities.",
     status_code=status.HTTP_200_OK,
 )
 async def get_movie_list(
         page: int = Query(1, ge=1),
         per_page: int = Query(10, ge=1),
         db: AsyncSession = Depends(get_db),
-        year: Optional[int] = Query(None, description="Filter by year"),
-        imdb: Optional[float] = Query(None, description="Filter by imdb rating"),
+        year: Optional[int] = Query(
+            None,
+            description="Filter by year"
+        ),
+        imdb: Optional[float] = Query(
+            None,
+            description="Filter by imdb rating"
+        ),
         sort_by: Literal["id", "price", "time", "votes"] = Query("id"),
         order: Literal["asc", "desc"] = Query("asc"),
         search: Optional[str] = Query(
@@ -47,7 +66,10 @@ async def get_movie_list(
 
     # sort
     if not hasattr(MovieModel, sort_by):
-        raise HTTPException(status_code=400, detail=f"Invalid sort field: {sort_by}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid sort field: {sort_by}"
+        )
     column = getattr(MovieModel, sort_by)
     query = query.order_by(column.desc() if order == "desc" else column)
 
@@ -57,8 +79,16 @@ async def get_movie_list(
             or_(
                 MovieModel.name.ilike(f"%{search}%"),
                 MovieModel.description.ilike(f"%{search}%"),
-                MovieModel.stars.any(models.StarModel.name.ilike(f"%{search}%")),
-                MovieModel.directors.any(models.DirectorModel.name.ilike(f"%{search}%")),
+                MovieModel.stars.any(
+                    models.StarModel.name.ilike(
+                        f"%{search}%"
+                    )
+                ),
+                MovieModel.directors.any(
+                    models.DirectorModel.name.ilike(
+                        f"%{search}%"
+                    )
+                ),
             )
         )
 
@@ -87,7 +117,10 @@ async def get_movie_list(
             detail="No movies found matching the specified criteria"
         )
 
-    movie_list = [MovieListItemSchema.model_validate(movie) for movie in movies]
+    movie_list = [
+        MovieListItemSchema.model_validate(movie)
+        for movie in movies
+    ]
 
     return MovieListResponseSchema(
         movies=movie_list,
@@ -108,7 +141,9 @@ async def get_movie_list(
     "/{movie_id}",
     response_model=MovieDetailSchema,
     summary="Get movie detail by ID",
-    description="Retrieves detailed information about a specific movie including its certification, genres, stars, and directors.",
+    description="Retrieves detailed information about "
+                "a specific movie including its "
+                "certification, genres, stars, and directors.",
     status_code=status.HTTP_200_OK,
 )
 async def get_movie_by_id(
@@ -143,8 +178,10 @@ async def get_movie_by_id(
     response_model=MovieDetailSchema,
     summary="Create a new movie record",
     description=(
-            "Add a new movie to the database, including its genres, stars, directors, "
-            "and certification. If any of the related entities don’t exist, they’ll be created automatically."
+            "Add a new movie to the database, including "
+            "its genres, stars, directors, "
+            "and certification. If any of the related "
+            "entities don’t exist, they’ll be created automatically."
     ),
     status_code=status.HTTP_201_CREATED,
 )
@@ -182,7 +219,9 @@ async def create_movie(
 
         genres = []
         for genre_name in movie_data.genres:
-            genre_stmt = select(GenreModel).where(GenreModel.name == genre_name)
+            genre_stmt = select(GenreModel).where(
+                GenreModel.name == genre_name
+            )
             genre_result = await db.execute(genre_stmt)
             genre = genre_result.scalars().first()
 
@@ -206,7 +245,9 @@ async def create_movie(
 
         directors = []
         for director_name in movie_data.directors:
-            director_stmt = select(DirectorModel).where(DirectorModel.name == director_name)
+            director_stmt = select(DirectorModel).where(
+                DirectorModel.name == director_name
+            )
             director_result = await db.execute(director_stmt)
             director = director_result.scalars().first()
 
@@ -249,7 +290,8 @@ async def create_movie(
     "/{movie_id}",
     summary="Update a movie by ID",
     description=(
-            "Modify one or more details of an existing movie by its unique ID. "
+            "Modify one or more details of an "
+            "existing movie by its unique ID. "
             "Only the provided fields will be updated."
     ),
     status_code=status.HTTP_200_OK,
@@ -310,14 +352,17 @@ async def delete_movie(
             detail=f"Movie with ID '{movie_id}' not found."
         )
 
-    stmt_order = select(OrderItemModel).where(OrderItemModel.movie_id == movie_id)
+    stmt_order = select(OrderItemModel).where(
+        OrderItemModel.movie_id == movie_id
+    )
     result = await db.execute(stmt_order)
     order = result.scalars().first()
 
     if order:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete a movie that has been purchased by at least one user."
+            detail="Cannot delete a movie that has been "
+                   "purchased by at least one user."
         )
 
     await db.delete(movie)

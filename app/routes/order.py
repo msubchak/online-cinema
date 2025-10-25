@@ -19,7 +19,8 @@ router = APIRouter()
     "/",
     response_model=OrderResponseSchema,
     summary="Create an order from the cart",
-    description="Creates a new order for all movies in the authenticated user's cart",
+    description="Creates a new order for all movies "
+                "in the authenticated user's cart",
     status_code=status.HTTP_201_CREATED,
 )
 async def create_order(
@@ -35,7 +36,7 @@ async def create_order(
     if not cart or not cart.items:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Cart is empty or not found",
+            detail="Cart is empty or not found",
         )
     cart_items = list(cart.items)
 
@@ -78,7 +79,8 @@ async def create_order(
         if pending:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Movie '{item.movie.name}' is already in a pending order",
+                detail=f"Movie '{item.movie.name}' is already "
+                       f"in a pending order",
             )
 
     total_amount = sum(item.movie.price for item in cart.items)
@@ -111,7 +113,6 @@ async def create_order(
             price_at_order=item.movie.price
         )
         items.append(order_movie)
-
 
     return OrderResponseSchema(
         id=new_order.id,
@@ -150,9 +151,9 @@ async def pay_order(
 
     if order.status == StatusEnum.PAID:
         raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail=f"Order '{order.id}' has already been paid.",
-    )
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Order '{order.id}' has already been paid.",
+        )
 
     order.status = StatusEnum.PAID
     await db.commit()
@@ -164,7 +165,9 @@ async def pay_order(
 @router.post(
     "/{order_id}/cancel",
     summary="Cancel a pending order",
-    description="Allows a user to cancel their order if it has not been paid yet. Paid orders cannot be canceled directly.",
+    description="Allows a user to cancel their order "
+                "if it has not been paid yet. "
+                "Paid orders cannot be canceled directly.",
     status_code=status.HTTP_200_OK,
 )
 async def cancel_order(
@@ -210,18 +213,30 @@ async def cancel_order(
     summary="View all user orders (admin)",
     description=(
         "Allows admins to view all user orders. "
-        "Filters can be applied by user, date range, or order status (paid, canceled, pending)."
+        "Filters can be applied by user, date range, "
+        "or order status (paid, canceled, pending)."
     ),
     status_code=status.HTTP_200_OK,
 )
-
 async def get_orders_for_admin(
     db: AsyncSession = Depends(get_db),
     admin_user: UserModel = Depends(admin_required),
-    user_id: Optional[int] = Query(None, description="Filter by user id"),
-    start_date: Optional[date] = Query(None, description="Filter by start date"),
-    end_date: Optional[date] = Query(None, description="Filter by end date"),
-    order_status: Optional[StatusEnum] = Query(None, description="Filter by order status"),
+    user_id: Optional[int] = Query(
+        None,
+        description="Filter by user id"
+    ),
+    start_date: Optional[date] = Query(
+        None,
+        description="Filter by start date"
+    ),
+    end_date: Optional[date] = Query(
+        None,
+        description="Filter by end date"
+    ),
+    order_status: Optional[StatusEnum] = Query(
+        None,
+        description="Filter by order status"
+    ),
 ) -> List[OrderResponseSchema]:
     stmt = select(OrdersModel)
 

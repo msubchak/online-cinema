@@ -8,12 +8,24 @@ from app.core.config.email_utils import get_accounts_email_notificator
 from app.core.notifications.interfaces import EmailSenderInterface
 from app.models.accounts import UserModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, BackgroundTasks
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    Request,
+    Query,
+    BackgroundTasks
+)
 from app.core.database import get_db
 from app.core.config import settings
 from app.models.order import OrderItemModel, OrdersModel, StatusEnum
 from app.models.payments import PaymentModel, PaymentItemModel
-from app.schemas.payments import PaymentRequestSchema, PaymentResponseSchema, PaymentItemSchema
+from app.schemas.payments import (
+    PaymentRequestSchema,
+    PaymentResponseSchema,
+    PaymentItemSchema
+)
 from app.security.auth_dependencies import get_current_user, admin_required
 
 router = APIRouter()
@@ -22,8 +34,14 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 stripe.webhook_secret = settings.STRIPE_WEBHOOK_SECRET
 
 
-async def update_payment_status(db: AsyncSession, status: StatusEnum, external_id: str):
-    stmt = select(PaymentModel).where(PaymentModel.external_payment_id == external_id)
+async def update_payment_status(
+        db: AsyncSession,
+        status: StatusEnum,
+        external_id: str
+):
+    stmt = select(PaymentModel).where(
+        PaymentModel.external_payment_id == external_id
+    )
     result = await db.execute(stmt)
     payment = result.scalars().first()
 
@@ -73,7 +91,9 @@ async def create_payments(
             detail="Payment is already paid",
         )
 
-    stmt_items = select(OrderItemModel).where(OrderItemModel.order_id == payment_data.order_id)
+    stmt_items = select(OrderItemModel).where(
+        OrderItemModel.order_id == payment_data.order_id
+    )
     result = await db.execute(stmt_items)
     items = result.scalars().all()
 
@@ -91,12 +111,13 @@ async def create_payments(
             currency="uah",
             payment_method_types=["card"]
         )
-    except stripe.InvalidRequestError as e:
+    except stripe.InvalidRequestError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Payment method not available. Try a different payment method."
+            detail="Payment method not available. "
+                   "Try a different payment method."
         )
-    except stripe.StripeError as e:
+    except stripe.StripeError:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Payment processing error. Please try again later."
@@ -135,7 +156,7 @@ async def create_payments(
                 order_item_id=item.order_item_id,
                 price_at_payment=item.price_at_payment
             )
-                for item in payment.items
+            for item in payment.items
         ],
     )
 
@@ -143,14 +164,17 @@ async def create_payments(
 @router.post(
     "/webhook",
     summary="Stripe Webhook.",
-    description="Receives Stripe events and updates payment status (successful, canceled, refunded).",
+    description="Receives Stripe events and updates payment status "
+                "(successful, canceled, refunded).",
     status_code=status.HTTP_200_OK,
 )
 async def stripe_webhook(
         request: Request,
         background_tasks: BackgroundTasks,
         db: AsyncSession = Depends(get_db),
-        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+        email_sender: EmailSenderInterface = Depends(
+            get_accounts_email_notificator
+        ),
 ):
     payload = await request.body()
     sig_head = request.headers.get("stripe-signature")
@@ -165,13 +189,22 @@ async def stripe_webhook(
         raise HTTPException(status_code=400, detail="Invalid signature")
 
     if event["type"] == "payment_intent.succeeded":
-        await update_payment_status(db, StatusEnum.SUCCESSFUL, event["data"]["object"]["id"])
-        stmt = select(PaymentModel).where(PaymentModel.external_payment_id == event["data"]["object"]["id"])
+        await update_payment_status(
+            db,
+            StatusEnum.SUCCESSFUL,
+            event["data"]["object"]["id"]
+        )
+        stmt = select(PaymentModel).where(
+            PaymentModel.external_payment_id == event["data"]["object"]["id"]
+        )
         result = await db.execute(stmt)
         payment = result.scalars().first()
 
         if payment:
-            order_link = f"https://localhost:8000/api/v1/payment/{payment.order_id}"
+            order_link = (
+                f"https://localhost:8000/api/v1/payment/"
+                f"{payment.order_id}"
+            )
             background_tasks.add_task(
                 email_sender.send_success_payment,
                 payment.user.email,
@@ -179,10 +212,18 @@ async def stripe_webhook(
             )
 
     elif event["type"] == "payment_intent.payment_failed":
-        await update_payment_status(db, StatusEnum.CANCELED, event["data"]["object"]["id"])
+        await update_payment_status(
+            db,
+            StatusEnum.CANCELED,
+            event["data"]["object"]["id"]
+        )
 
     elif event["type"] == "charge.refunded":
-        await update_payment_status(db, StatusEnum.REFUNDED, event["data"]["object"]["id"])
+        await (update_payment_status(
+            db,
+            StatusEnum.REFUNDED,
+            event["data"]["object"]["id"]
+        ))
 
     return {"status": "success"}
 
@@ -191,15 +232,25 @@ async def stripe_webhook(
     "/",
     response_model=List[PaymentResponseSchema],
     summary="Get user's payments",
-    description="Returns all payments of the current user. Supports optional filters by status and date range.",
+    description="Returns all payments of the current user. "
+                "Supports optional filters by status and date range.",
     status_code=status.HTTP_200_OK,
 )
 async def get_payments_by_user(
         current_user: UserModel = Depends(get_current_user),
         db: AsyncSession = Depends(get_db),
-        pay_status: Optional[StatusEnum] = Query(None, description="Filter by payment status"),
-        start_date: Optional[date] = Query(None, description="Filter by start date"),
-        end_date: Optional[date] = Query(None, description="Filter by end date"),
+        pay_status: Optional[StatusEnum] = Query(
+            None,
+            description="Filter by payment status"
+        ),
+        start_date: Optional[date] = Query(
+            None,
+            description="Filter by start date"
+        ),
+        end_date: Optional[date] = Query(
+            None,
+            description="Filter by end date"
+        ),
 ) -> List[PaymentResponseSchema]:
     stmt = select(PaymentModel).where(PaymentModel.user_id == current_user.id)
 
@@ -227,16 +278,26 @@ async def get_payments_by_user(
     response_model=List[PaymentResponseSchema],
     summary="View all user payments (admin)",
     description="Allows admins to view all user payments. "
-        "Filters can be applied by user, date range, or payments status (paid, canceled, pending).",
+                "Filters can be applied by user, date range, "
+                "or payments status (paid, canceled, pending).",
     status_code=status.HTTP_200_OK,
 )
 async def get_payments_by_admin(
         db: AsyncSession = Depends(get_db),
         admin_user: UserModel = Depends(admin_required),
         user_id: Optional[int] = Query(None, description="Filter by user id"),
-        pay_status: Optional[StatusEnum] = Query(None, description="Filter by payment status"),
-        start_date: Optional[date] = Query(None, description="Filter by start date"),
-        end_date: Optional[date] = Query(None, description="Filter by end date"),
+        pay_status: Optional[StatusEnum] = Query(
+            None,
+            description="Filter by payment status"
+        ),
+        start_date: Optional[date] = Query(
+            None,
+            description="Filter by start date"
+        ),
+        end_date: Optional[date] = Query(
+            None,
+            description="Filter by end date"
+        ),
 ) -> List[PaymentResponseSchema]:
     stmt = select(PaymentModel)
 

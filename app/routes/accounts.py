@@ -8,7 +8,11 @@ from sqlalchemy import select, delete
 from sqlalchemy.orm import joinedload
 
 from app.core.config.settings import BaseAppSettings
-from app.core.config.email_utils import get_accounts_email_notificator, get_settings, get_jwt_auth_manager
+from app.core.config.email_utils import (
+    get_accounts_email_notificator,
+    get_settings,
+    get_jwt_auth_manager
+)
 from app.core.database import get_db
 from app.core.exceptions.security import BaseSecurityError
 from app.core.notifications.interfaces import EmailSenderInterface
@@ -16,15 +20,25 @@ from app.models.accounts import (
     UserModel,
     UserGroupEnum,
     ActivationTokenModel,
-    UserGroupModel, RefreshTokenModel, PasswordResetTokenModel
+    UserGroupModel,
+    RefreshTokenModel,
+    PasswordResetTokenModel
 )
 from app.schemas.accounts import (
     UserRegistrationResponseSchema,
     UserRegistrationRequestSchema,
     MessageResponseSchema,
-    UserActivationRequestSchema, UserLoginResponseSchema, UserLoginRequestSchema, UserLogoutRequestSchema,
-    UserChangePasswordRequestSchema, PasswordResetRequestSchema, PasswordResetCompleteRequestSchema,
-    TokenRefreshResponseSchema, TokenRefreshRequestSchema, ChangeUserGroupRequestSchema, ResendActivationRequestSchema,
+    UserActivationRequestSchema,
+    UserLoginResponseSchema,
+    UserLoginRequestSchema,
+    UserLogoutRequestSchema,
+    UserChangePasswordRequestSchema,
+    PasswordResetRequestSchema,
+    PasswordResetCompleteRequestSchema,
+    TokenRefreshResponseSchema,
+    TokenRefreshRequestSchema,
+    ChangeUserGroupRequestSchema,
+    ResendActivationRequestSchema,
     ActivateUserRequestSchema
 )
 from app.security.auth_dependencies import get_current_user, admin_required
@@ -44,7 +58,9 @@ async def register_user(
         user_data: UserRegistrationRequestSchema,
         background_tasks: BackgroundTasks,
         db: AsyncSession = Depends(get_db),
-        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+        email_sender: EmailSenderInterface = Depends(
+            get_accounts_email_notificator
+        ),
 ) -> UserRegistrationResponseSchema:
     stmt = select(UserModel).where(UserModel.email == user_data.email)
     result = await db.execute(stmt)
@@ -55,7 +71,9 @@ async def register_user(
             detail=f"A user with this email {user_data.email} already exists.",
         )
 
-    stmt = select(UserGroupModel).where(UserGroupModel.name == UserGroupEnum.USER)
+    stmt = select(UserGroupModel).where(
+        UserGroupModel.name == UserGroupEnum.USER
+    )
     result = await db.execute(stmt)
     user_group = result.scalars().first()
     if not user_group:
@@ -79,7 +97,8 @@ async def register_user(
         await db.commit()
         await db.refresh(new_user)
 
-        activation_link = f"https://localhost:8000/api/v1/accounts/activate?token={activation_token.token}"
+        activation_link = (f"https://localhost:8000/api/v1/accounts/"
+                           f"activate?token={activation_token.token}")
         background_tasks.add_task(
             email_sender.send_activation_email,
             new_user.email,
@@ -99,7 +118,8 @@ async def register_user(
     "/activate/",
     response_model=MessageResponseSchema,
     summary="Activate a user",
-    description="Activate a user's account using their email and activation token.",
+    description="Activate a user's account using "
+                "their email and activation token.",
     status_code=status.HTTP_200_OK,
 )
 async def activate_account(
@@ -119,7 +139,9 @@ async def activate_account(
     token_record = result.scalars().first()
 
     now_utc = datetime.now(timezone.utc)
-    if not token_record or cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc) < now_utc:
+    if not token_record or cast(
+            datetime, token_record.expires_at
+    ).replace(tzinfo=timezone.utc) < now_utc:
         if token_record:
             await db.delete(token_record)
             await db.commit()
@@ -138,7 +160,9 @@ async def activate_account(
     await db.delete(token_record)
     await db.commit()
 
-    return MessageResponseSchema(message="User account activated successfully.")
+    return MessageResponseSchema(
+        message="User account activated successfully."
+    )
 
 
 @router.post(
@@ -275,7 +299,9 @@ async def request_password_reset_token(
         data: PasswordResetRequestSchema,
         background_tasks: BackgroundTasks,
         db: AsyncSession = Depends(get_db),
-        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator)
+        email_sender: EmailSenderInterface = Depends(
+            get_accounts_email_notificator
+        )
 ) -> MessageResponseSchema:
     stmt = select(UserModel).where(UserModel.email == data.email)
     result = await db.execute(stmt)
@@ -283,16 +309,22 @@ async def request_password_reset_token(
 
     if not user or not user.is_active:
         return MessageResponseSchema(
-            message="If you are registered, you will receive an email with instructions."
+            message="If you are registered, you will "
+                    "receive an email with instructions."
         )
 
-    await db.execute(delete(PasswordResetTokenModel).where(PasswordResetTokenModel.user_id == user.id))
+    await db.execute(
+        delete(PasswordResetTokenModel).where(
+            PasswordResetTokenModel.user_id == user.id
+        )
+    )
 
     reset_token = PasswordResetTokenModel(user_id=cast(int, user.id))
     db.add(reset_token)
     await db.commit()
 
-    reset_link = f"https://localhost:8000/api/v1/accounts/reset-password?token={reset_token.token}"
+    reset_link = (f"https://localhost:8000/api/v1/accounts/"
+                  f"reset-password?token={reset_token.token}")
     background_tasks.add_task(
         email_sender.send_password_reset_email,
         user.email,
@@ -314,7 +346,9 @@ async def request_password_reset_token(
 async def reset_password(
         data: PasswordResetCompleteRequestSchema,
         background_tasks: BackgroundTasks,
-        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+        email_sender: EmailSenderInterface = Depends(
+            get_accounts_email_notificator
+        ),
         db: AsyncSession = Depends(get_db),
 ) -> MessageResponseSchema:
     stmt = select(UserModel).where(UserModel.email == data.email)
@@ -340,7 +374,10 @@ async def reset_password(
             detail="Invalid email or token."
         )
 
-    expires_at = cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc)
+    expires_at = cast(
+        datetime,
+        token_record.expires_at
+    ).replace(tzinfo=timezone.utc)
     if expires_at < datetime.now(timezone.utc):
         await db.delete(token_record)
         await db.commit()
@@ -383,7 +420,9 @@ async def refresh_access_token(
         jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
 ) -> TokenRefreshResponseSchema:
     try:
-        decoded_token = jwt_manager.decode_refresh_token(token_data.refresh_token)
+        decoded_token = jwt_manager.decode_refresh_token(
+            token_data.refresh_token
+        )
         user_id = decoded_token.get("user_id")
     except BaseSecurityError as e:
         raise HTTPException(
@@ -462,7 +501,9 @@ async def change_user_group(
             detail="Error updating user group."
         )
 
-    return MessageResponseSchema(message=f"User {user.email} changed group to {group.name}")
+    return MessageResponseSchema(
+        message=f"User {user.email} changed group to {group.name}"
+    )
 
 
 @router.post(
@@ -481,7 +522,7 @@ async def activate_user(
     result = await db.execute(stmt)
     user = result.scalars().one_or_none()
 
-    if not user or user.is_active == True:
+    if not user or user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User not found or user already active."
@@ -504,7 +545,9 @@ async def resend_activation(
         data: ResendActivationRequestSchema,
         background_tasks: BackgroundTasks,
         db: AsyncSession = Depends(get_db),
-        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+        email_sender: EmailSenderInterface = Depends(
+            get_accounts_email_notificator
+        ),
 ) -> MessageResponseSchema:
     stmt = select(UserModel).where(UserModel.email == data.email)
     result = await db.execute(stmt)
@@ -537,7 +580,10 @@ async def resend_activation(
     await db.commit()
     await db.refresh(new_token)
 
-    activation_link = f"https://localhost:8000/api/v1/accounts/activate?token={new_token.token}"
+    activation_link = (
+        f"https://localhost:8000/api/v1/accounts/"
+        f"activate?token={new_token.token}"
+    )
     background_tasks.add_task(
         email_sender.send_activation_email,
         user.email,

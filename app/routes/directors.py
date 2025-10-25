@@ -1,4 +1,4 @@
-from sqlite3 import IntegrityError
+from sqlalchemy.exc import IntegrityError
 
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy import func, select
@@ -6,8 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models import DirectorModel
-from app.schemas.directors import DirectorsListResponseSchema, DirectorsListItemSchema, DirectorsCreateSchemas, \
-    DirectorsDetailSchema, DirectorsUpdateSchema
+from app.schemas.directors import (
+    DirectorsListResponseSchema,
+    DirectorsListItemSchema,
+    DirectorsCreateSchemas,
+    DirectorsDetailSchema,
+    DirectorsUpdateSchema
+)
 
 router = APIRouter()
 
@@ -16,7 +21,9 @@ router = APIRouter()
     "/",
     response_model=DirectorsListResponseSchema,
     summary="Retrieve all directors",
-    description="Returns a paginated list of all directors with navigation links for browsing through pages.",
+    description="Returns a paginated list of "
+                "all directors with navigation links for "
+                "browsing through pages.",
     status_code=status.HTTP_200_OK,
 )
 async def get_directors(
@@ -49,20 +56,26 @@ async def get_directors(
     if not directors:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Page not found - no directors available for the requested page",
+            detail="Page not found - no directors "
+                   "available for the requested page",
         )
 
-    directors_list = [DirectorsListItemSchema.model_validate(director) for director in directors]
+    directors_list = [
+        DirectorsListItemSchema.model_validate(director)
+        for director in directors
+    ]
 
     total_pages = (total_items + per_page - 1) // per_page
 
     return DirectorsListResponseSchema(
         directors=directors_list,
         prev_page=(
-            f"/directors/?page={page - 1}&per_page={per_page}" if page > 1 else None
+            f"/directors/?page={page - 1}&per_page={per_page}"
+            if page > 1 else None
         ),
         next_page=(
-            f"/directors/?page={page + 1}&per_page={per_page}" if page < total_pages else None
+            f"/directors/?page={page + 1}&per_page={per_page}"
+            if page < total_pages else None
         ),
         total_pages=total_pages,
         total_items=total_items,
@@ -73,7 +86,9 @@ async def get_directors(
     "/{director_id}",
     response_model=DirectorsDetailSchema,
     summary="Get director by ID",
-    description="Retrieves detailed information about a specific director by their unique ID.",
+    description="Retrieves detailed information "
+                "about a specific director by their "
+                "unique ID.",
     status_code=status.HTTP_200_OK,
 )
 async def get_director_by_id(
@@ -97,7 +112,9 @@ async def get_director_by_id(
     "/",
     response_model=DirectorsDetailSchema,
     summary="Create a new director",
-    description="Creates a new director with a unique name. Returns the created director details.",
+    description="Creates a new director with "
+                "a unique name. Returns the created "
+                "director details.",
     status_code=status.HTTP_201_CREATED,
 )
 async def create_director(
@@ -129,7 +146,8 @@ async def create_director(
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Failed to create director due to database constraint violation"
+            detail="Failed to create director due "
+                   "to database constraint violation"
         )
 
 
@@ -137,7 +155,9 @@ async def create_director(
     "/{director_id}",
     response_model=DirectorsDetailSchema,
     summary="Update a director",
-    description="Updates a specific director by their unique ID. Only provided fields will be updated.",
+    description="Updates a specific director "
+                "by their unique ID. Only provided fields "
+                "will be updated.",
     status_code=status.HTTP_200_OK,
 )
 async def update_director(
@@ -164,7 +184,8 @@ async def update_director(
         if existing_result.scalars().first():
             raise HTTPException(
                 status_code=409,
-                detail=f"Director with name '{director_data.name}' already exist"
+                detail=f"Director with name "
+                       f"'{director_data.name}' already exist"
             )
 
     for field, value in director_data.model_dump(exclude_unset=True).items():
@@ -180,7 +201,8 @@ async def update_director(
         await db.rollback()
         raise HTTPException(
             status_code=400,
-            detail="Failed to update director due to database constraint violation"
+            detail="Failed to update director "
+                   "due to database constraint violation"
         )
 
 
