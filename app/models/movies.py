@@ -9,7 +9,12 @@ from sqlalchemy import (
     Table,
     DECIMAL,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship
+)
+from app.models.order import OrderItemModel
 from app.models.Base import Base
 
 
@@ -32,8 +37,18 @@ movie_stars = Table(
 movie_directors = Table(
     "movie_directors",
     Base.metadata,
-    Column("movie_id", Integer, ForeignKey("movies.id"), primary_key=True),
-    Column("director_id", Integer, ForeignKey("directors.id"), primary_key=True),
+    Column(
+        "movie_id",
+        Integer,
+        ForeignKey("movies.id"),
+        primary_key=True
+    ),
+    Column(
+        "director_id",
+        Integer,
+        ForeignKey("directors.id"),
+        primary_key=True
+    ),
 )
 
 
@@ -92,7 +107,11 @@ class MovieModel(Base):
     __tablename__ = "movies"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    uuid: Mapped[str] = mapped_column(default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    uuid: Mapped[str] = mapped_column(
+        default=lambda: str(uuid.uuid4()),
+        unique=True,
+        nullable=False
+    )
     name: Mapped[str] = mapped_column(nullable=False)
     year: Mapped[int] = mapped_column(nullable=False)
     time: Mapped[int] = mapped_column(nullable=False)
@@ -102,7 +121,10 @@ class MovieModel(Base):
     gross: Mapped[float | None] = mapped_column(nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     price: Mapped[Decimal] = mapped_column(DECIMAL(10, 2))
-    certification_id: Mapped[int] = mapped_column(ForeignKey("certifications.id"), nullable=False)
+    certification_id: Mapped[int] = mapped_column(
+        ForeignKey("certifications.id"),
+        nullable=False
+    )
 
     items: Mapped[list["OrderItemModel"]] = relationship(
         "OrderItemModel",

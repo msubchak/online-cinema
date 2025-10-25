@@ -1,6 +1,7 @@
 import enum
 from datetime import datetime
-
+from app.models.accounts import UserModel
+from app.models.movies import MovieModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Enum as SQLAlchemyEnum
 from app.models.Base import Base
@@ -17,12 +18,14 @@ class StatusEnum(str, enum.Enum):
     CANCELED = "canceled"
 
 
-
 class OrdersModel(Base):
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -31,7 +34,10 @@ class OrdersModel(Base):
         nullable=False,
         default=StatusEnum.PENDING,
     )
-    total_amount: Mapped[float] = mapped_column(DECIMAL(10,2), nullable=True)
+    total_amount: Mapped[float] = mapped_column(
+        DECIMAL(10, 2),
+        nullable=True
+    )
 
     items: Mapped[list["OrderItemModel"]] = relationship(
         "OrderItemModel",
@@ -49,9 +55,18 @@ class OrderItemModel(Base):
     __tablename__ = "order_items"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"), nullable=False)
-    movie_id: Mapped[int] = mapped_column(ForeignKey("movies.id"), nullable=False)
-    price_at_order: Mapped[float] = mapped_column(DECIMAL(10,2), nullable=False)
+    order_id: Mapped[int] = mapped_column(
+        ForeignKey("orders.id"),
+        nullable=False
+    )
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id"),
+        nullable=False
+    )
+    price_at_order: Mapped[float] = mapped_column(
+        DECIMAL(10, 2),
+        nullable=False
+    )
 
     order: Mapped["OrdersModel"] = relationship(
         back_populates="items",

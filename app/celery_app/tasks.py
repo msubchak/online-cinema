@@ -1,7 +1,11 @@
 from datetime import datetime, timezone
 
 from app.core.database import async_session
-from app.models.accounts import RefreshTokenModel, ActivationTokenModel, PasswordResetTokenModel
+from app.models.accounts import (
+    RefreshTokenModel,
+    ActivationTokenModel,
+    PasswordResetTokenModel
+)
 from celery_app import celery_app
 import asyncio
 
@@ -31,6 +35,7 @@ def delete_expired_token_sync():
 
             await db.commit()
     asyncio.run(inner())
+
 
 @celery_app.task
 def delete_expired_token_task():

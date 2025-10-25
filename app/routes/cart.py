@@ -1,6 +1,7 @@
 from sqlalchemy import select
 
 from app.core.config.email_utils import get_jwt_auth_manager
+from app.models import OrdersModel, OrderItemModel
 from app.models.accounts import UserModel
 from app.models.cart import CartModel, CartItemModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +19,9 @@ router = APIRouter()
     "/",
     response_model=CartResponseSchema,
     summary="Get the current user's cart",
-    description="Retrieve the shopping cart of the authenticated user, including all added movies.",
+    description="Retrieve the shopping cart of "
+                "the authenticated user, including all "
+                "added movies.",
     status_code=status.HTTP_200_OK,
 )
 async def get_cart_by_user_id(
@@ -55,7 +58,8 @@ async def get_cart_by_user_id(
 @router.post(
     "/",
     summary="Add a movie to the cart",
-    description="Add a selected movie to the authenticated user's shopping cart.",
+    description="Add a selected movie to the "
+                "authenticated user's shopping cart.",
     status_code=status.HTTP_201_CREATED,
 )
 async def add_cart_item(
@@ -87,6 +91,20 @@ async def add_cart_item(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This movie is already present in your cart.",
+        )
+
+    stmt_purchase = select(OrderItemModel).join(OrdersModel).where(
+        OrderItemModel.movie_id == movie_id,
+        OrdersModel.user_id == current_user.id,
+    )
+    result = await db.execute(stmt_purchase)
+    purchase = result.scalars().first()
+
+    if purchase:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You have already purchased this movie. "
+                   "Repeat purchases are not allowed."
         )
 
     cart_item = CartItemModel(
