@@ -1,7 +1,6 @@
 import enum
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
-from app.models.order import OrdersModel
 
 from sqlalchemy import (
     ForeignKey,
