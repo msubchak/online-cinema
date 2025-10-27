@@ -1,7 +1,6 @@
 import enum
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
-from app.models.order import OrdersModel
 
 from sqlalchemy import (
     ForeignKey,
@@ -142,6 +141,9 @@ class UserModel(Base):
 
     def has_group(self, group_name: UserGroupEnum) -> bool:
         return self.group.name == group_name
+
+    def set_password(self, new_password: str) -> None:
+        self._hashed_password = hash_password(new_password)
 
     @classmethod
     def create(
