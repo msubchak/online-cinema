@@ -265,7 +265,7 @@ async def change_password(
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found."
         )
 
@@ -387,7 +387,7 @@ async def reset_password(
         )
 
     try:
-        user.set_password(data.password)
+        user.set_password(data.new_password)
         await db.delete(token_record)
         await db.commit()
     except SQLAlchemyError:
