@@ -8,7 +8,8 @@ from app.models.accounts import (
     ActivationTokenModel,
     RefreshTokenModel,
     UserGroupModel,
-    UserGroupEnum
+    UserGroupEnum,
+    PasswordResetTokenModel
 )
 
 
@@ -27,6 +28,11 @@ async def test_app():
 async def clear_all_tables():
     async with engine.begin() as conn:
         await conn.execute(delete(ActivationTokenModel))
+        await conn.execute(delete(PasswordResetTokenModel))
         await conn.execute(delete(RefreshTokenModel))
         await conn.execute(delete(UserModel))
+        await conn.execute(delete(UserGroupModel))
+        await conn.execute(
+            insert(UserGroupModel).values(name=UserGroupEnum.USER)
+        )
         await conn.commit()
