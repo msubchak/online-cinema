@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import GenreModel
+from app.models import DirectorModel
 from app.core.database import engine
 from httpx import AsyncClient, ASGITransport
 
@@ -9,209 +9,199 @@ from httpx import AsyncClient, ASGITransport
 pytestmark = pytest.mark.asyncio
 
 
-class TestGenres():
-    async def create_genre(self):
+class TestDirectors():
+    async def create_director(self):
         async with AsyncSession(engine) as session:
-            genre = GenreModel(name="Test")
+            director = DirectorModel(name="Test")
 
-            session.add(genre)
+            session.add(director)
             await session.commit()
-            await session.refresh(genre)
-            return genre.id
+            await session.refresh(director)
+            return director.id
 
 
-class TestGenresGet(TestGenres):
-    async def test_get_genres_success(self, test_app):
-        await self.create_genre()
+class TestDirectorsGet(TestDirectors):
+    async def test_get_directors_success(self, test_app):
+        await self.create_director()
 
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
                 transport=transport,
                 base_url="http://test"
         ) as client:
-            response = await client.get("/api/v1/genres/?page=1&per_page=10")
+            response = await client.get(
+                "/api/v1/directors/?page=1&per_page=10"
+            )
 
         assert response.status_code == 200
         data = response.json()
-        assert "genres" in data
+        assert "directors" in data
 
-    async def test_get_genres_items_not_found(self, test_app):
+    async def test_get_directors_items_not_found(self, test_app):
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
                 transport=transport,
                 base_url="http://test"
         ) as client:
-            response = await client.get("/api/v1/genres/")
+            response = await client.get("/api/v1/directors/")
 
         assert response.status_code == 404
         assert response.json() == {
-            "detail": "No genres found in the database."
+            "detail": "No directors found in the database"
         }
 
-    async def test_get_genres_not_found(self, test_app):
-        await self.create_genre()
+    async def test_get_directors_not_found(self, test_app):
+        await self.create_director()
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
                 transport=transport,
                 base_url="http://test"
         ) as client:
-            response = await client.get("/api/v1/genres/?page=5&per_page=10")
+            response = await client.get(
+                "/api/v1/directors/?page=5&per_page=30"
+            )
 
         assert response.status_code == 404
         assert response.json() == {
-            "detail": "No genres found in the database."
+            "detail": "Page not found - no directors "
+                      "available for the requested page"
         }
 
 
-class TestGenresGetByID(TestGenres):
-    async def test_get_genres_by_id_success(self, test_app):
-        genre_id = await self.create_genre()
+class TestDirectorsGetById(TestDirectors):
+    async def test_get_director_by_id_success(self, test_app):
+        director_id = await self.create_director()
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
                 transport=transport,
                 base_url="http://test"
         ) as client:
-            response = await client.get(f"/api/v1/genres/{genre_id}/")
+            response = await client.get(f"/api/v1/directors/{director_id}")
 
         assert response.status_code == 200
         data = response.json()
-        assert data["id"] == genre_id
+        assert data["id"] == director_id
 
-    async def test_get_genres_by_id_not_found(self, test_app):
-        genre_id = 9999
+    async def test_get_director_by_id_not_found(self, test_app):
+        director_id = 9999
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
                 transport=transport,
                 base_url="http://test"
         ) as client:
-            response = await client.get(f"/api/v1/genres/{genre_id}/")
+            response = await client.get(f"/api/v1/directors/{director_id}")
 
         assert response.status_code == 404
-        assert "detail" in response.json()
+        data = "detail" in response.json()
 
 
-class TestGenresCreate(TestGenres):
-    async def test_create_genres_success(self, test_app):
+class TestDirectorsCreate(TestDirectors):
+    async def test_create_director_success(self, test_app):
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
                 transport=transport,
                 base_url="http://test"
         ) as client:
             response = await client.post(
-                "/api/v1/genres/",
+                "/api/v1/directors/",
                 json={
                     "name": "Test",
                 }
             )
+
         assert response.status_code == 201
 
-    async def test_create_genres_exists_name(self, test_app):
+    async def test_create_director_exists_name(self, test_app):
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
                 transport=transport,
                 base_url="http://test"
         ) as client:
             response1 = await client.post(
-                "/api/v1/genres/",
-                json={
-                    "name": "Test",
-                }
+                "/api/v1/directors/",
+                json={"name": "Test"}
             )
             assert response1.status_code == 201
 
             response2 = await client.post(
-                "/api/v1/genres/",
-                json={
-                    "name": "Test",
-                }
+                "/api/v1/directors/",
+                json={"name": "Test"}
             )
 
         assert response2.status_code == 409
         assert "detail" in response2.json()
 
 
-class TestGenresUpdate(TestGenres):
-    async def test_update_genres_success(self, test_app):
-        genre_id = await self.create_genre()
+class TestDirectorsUpdate(TestDirectors):
+    async def test_update_director_success(self, test_app):
+        director_id = await self.create_director()
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
                 transport=transport,
                 base_url="http://test"
         ) as client:
             response = await client.patch(
-                f"/api/v1/genres/{genre_id}/",
-                json={
-                    "name": "Test1",
-                }
+                f"/api/v1/directors/{director_id}",
+                json={"name": "Test"}
             )
 
         assert response.status_code == 200
-        assert "detail" in response.json()
 
-    async def test_update_genres_not_found(self, test_app):
-        genre_id = 9999
+    async def test_update_director_not_found(self, test_app):
+        director_id = 9999
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
                 transport=transport,
                 base_url="http://test"
         ) as client:
             response = await client.patch(
-                f"/api/v1/genres/{genre_id}/",
-                json={
-                    "name": "Test1",
-                }
+                f"/api/v1/directors/{director_id}",
+                json={"name": "Test"}
             )
 
         assert response.status_code == 404
         assert "detail" in response.json()
 
-    async def test_update_genres_exists_name(self, test_app):
-        genre_id = await self.create_genre()
-
+    async def test_update_director_exists_name(self, test_app):
+        director_id = await self.create_director()
         async with AsyncSession(engine) as session:
-            session.add(GenreModel(name="Duplicate"))
+            session.add(DirectorModel(name="Duplicate"))
             await session.commit()
 
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
-                transport=transport,
-                base_url="http://test"
+            transport=transport,
+            base_url="http://test"
         ) as client:
             response = await client.patch(
-                f"/api/v1/genres/{genre_id}/",
-                json={
-                    "name": "Duplicate",
-                }
+                f"/api/v1/directors/{director_id}",
+                json={"name": "Duplicate"}
             )
 
         assert response.status_code == 409
         assert "detail" in response.json()
 
 
-class TestGenresDelete(TestGenres):
-    async def test_delete_genres_success(self, test_app):
-        genre_id = await self.create_genre()
+class TestDirectorsDelete(TestDirectors):
+    async def test_delete_director_success(self, test_app):
+        director_id = await self.create_director()
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
                 transport=transport,
                 base_url="http://test"
         ) as client:
-            response = await client.delete(
-                f"/api/v1/genres/{genre_id}/",
-            )
+            response = await client.delete(f"/api/v1/directors/{director_id}")
 
         assert response.status_code == 204
 
-    async def test_delete_genres_not_found(self, test_app):
-        genre_id = 9999
+    async def test_delete_director_not_found(self, test_app):
+        director_id = 9999
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
                 transport=transport,
                 base_url="http://test"
         ) as client:
-            response = await client.delete(
-                f"/api/v1/genres/{genre_id}/",
-            )
+            response = await client.delete(f"/api/v1/directors/{director_id}")
 
         assert response.status_code == 404
         assert "detail" in response.json()
