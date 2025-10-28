@@ -117,12 +117,12 @@ class MovieDetailSchema(BaseModel):
 
 
 class MovieUpdateSchema(BaseModel):
-    name: Optional[str]
-    year: Optional[int]
-    time: Optional[int]
-    imdb: Optional[float]
-    votes: Optional[int]
-    meta_score: Optional[float]
-    gross: Optional[float]
-    description: Optional[str]
-    price: Optional[float]
+    name: Optional[str] = None
+    year: Optional[int] = None
+    time: Optional[int] = None
+    imdb: Optional[float] = None
+    votes: Optional[int] = None
+    meta_score: Optional[float] = None
+    gross: Optional[float] = None
+    description: Optional[str] = None
+    price: Optional[float] = None

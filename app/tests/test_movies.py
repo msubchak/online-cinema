@@ -159,7 +159,7 @@ class TestMovieGetByID(TestMovies):
                 base_url="http://test"
         ) as client:
             response = await client.get(
-                f"/api/v1/movies/{movie_id}",
+                f"/api/v1/movies/{movie_id}/",
                 headers=headers
             )
 
@@ -174,7 +174,7 @@ class TestMovieGetByID(TestMovies):
                 transport=transport,
                 base_url="http://test"
         ) as client:
-            response = await client.get(f"/api/v1/movies/{movie_id}")
+            response = await client.get(f"/api/v1/movies/{movie_id}/")
 
         assert response.status_code == 404
         assert "detail" in response.json()
@@ -208,26 +208,6 @@ class TestMovieCreate(TestMovies):
                 headers=headers,
             )
             assert response1.status_code == 201
-
-            response2 = await client.post(
-                "api/v1/movies/",
-                json={
-                    "name": "Test Film",
-                    "year": 2023,
-                    "time": 120,
-                    "imdb": 7,
-                    "votes": 1000,
-                    "meta_score": 70.0,
-                    "gross": 100000.0,
-                    "description": "Example movie",
-                    "price": 10.0,
-                    "certification": "PG-13",
-                    "genres": ["Drama"],
-                    "stars": ["Actor One"],
-                    "directors": ["Director One"],
-                },
-                headers=headers,
-            )
 
     async def test_create_movies_existing(self, test_app):
         headers = await self.create_moderator_token()

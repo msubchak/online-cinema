@@ -138,7 +138,7 @@ async def get_movie_list(
 
 
 @router.get(
-    "/{movie_id}",
+    "/{movie_id}/",
     response_model=MovieDetailSchema,
     summary="Get movie detail by ID",
     description="Retrieves detailed information about "
