@@ -2,7 +2,16 @@ import pytest_asyncio
 from sqlalchemy import insert, delete
 from app.main import app
 from app.core.database import engine
-from app.models import MovieModel, GenreModel, StarModel, CertificationModel, DirectorModel, OrdersModel, OrderItemModel
+from app.models.movies import movie_genres, movie_stars, movie_directors
+from app.models import (
+    MovieModel,
+    GenreModel,
+    StarModel,
+    CertificationModel,
+    DirectorModel,
+    OrdersModel,
+    OrderItemModel
+)
 from app.models.Base import Base
 from app.models.accounts import (
     UserModel,
@@ -18,14 +27,14 @@ from app.models.accounts import (
 async def test_app():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        await conn.execute(insert(UserGroupModel).values(name=UserGroupEnum.USER))
+        await conn.execute(insert(
+            UserGroupModel
+        ).values(name=UserGroupEnum.USER))
         await conn.commit()
     yield app
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
-
-from app.models.movies import movie_genres, movie_stars, movie_directors
 
 @pytest_asyncio.fixture(autouse=True)
 async def clear_all_tables():
@@ -34,7 +43,9 @@ async def clear_all_tables():
             ActivationTokenModel, PasswordResetTokenModel, RefreshTokenModel,
             UserModel, UserGroupModel,
             OrderItemModel, OrdersModel,
-            MovieModel, GenreModel, StarModel, DirectorModel, CertificationModel,
+            MovieModel, GenreModel,
+            StarModel, DirectorModel,
+            CertificationModel,
         ]:
             await conn.execute(delete(model))
 
@@ -45,5 +56,3 @@ async def clear_all_tables():
             insert(UserGroupModel).values(name=UserGroupEnum.USER)
         )
         await conn.commit()
-
-

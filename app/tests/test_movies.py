@@ -2,7 +2,15 @@ import pytest
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import MovieModel, GenreModel, StarModel, DirectorModel, CertificationModel, OrdersModel, OrderItemModel
+from app.models import (
+    MovieModel,
+    GenreModel,
+    StarModel,
+    DirectorModel,
+    CertificationModel,
+    OrdersModel,
+    OrderItemModel
+)
 from app.models.accounts import (
     UserModel,
     UserGroupModel,
@@ -20,7 +28,9 @@ pytestmark = pytest.mark.asyncio
 class TestMovies():
     async def create_moderator_token(self):
         async with engine.begin() as conn:
-            await conn.execute(insert(UserGroupModel).values(name=UserGroupEnum.MODERATOR))
+            await conn.execute(insert(
+                UserGroupModel
+            ).values(name=UserGroupEnum.MODERATOR))
             result = await conn.execute(
                 insert(UserModel).values(
                     email="moder@example.com",
@@ -75,8 +85,14 @@ class TestMovieGet(TestMovies):
         await self.create_movie()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/v1/movies/?page=1&per_page=10", headers=headers)
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
+            response = await client.get(
+                "/api/v1/movies/?page=1&per_page=10",
+                headers=headers
+            )
 
         assert response.status_code == 200
         data = response.json()
@@ -87,30 +103,49 @@ class TestMovieGet(TestMovies):
         await self.create_movie()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/v1/movies/?sort_by=fake", headers=headers)
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
+            response = await client.get(
+                "/api/v1/movies/?sort_by=fake",
+                headers=headers
+            )
 
         assert response.status_code == 422
         assert "detail" in response.json()
 
     async def test_get_movie_not_found(self, test_app):
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.get("/api/v1/movies/")
 
         assert response.status_code == 404
-        assert response.json() == {"detail": "No movies found matching the specified criteria"}
+        assert response.json() == {
+            "detail": "No movies found matching the specified criteria"
+        }
 
     async def test_get_movie_invalid_page(self, test_app):
         headers = await self.create_moderator_token()
         await self.create_movie()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/v1/movies/?page=5&per_page=30", headers=headers)
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
+            response = await client.get(
+                "/api/v1/movies/?page=5&per_page=30",
+                headers=headers
+            )
 
         assert response.status_code == 404
-        assert response.json() == {"detail": "No movies found matching the specified criteria"}
+        assert response.json() == {
+            "detail": "No movies found matching the specified criteria"
+        }
 
 
 class TestMovieGetByID(TestMovies):
@@ -119,8 +154,14 @@ class TestMovieGetByID(TestMovies):
         movie_id = await self.create_movie()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(f"/api/v1/movies/{movie_id}", headers=headers)
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
+            response = await client.get(
+                f"/api/v1/movies/{movie_id}",
+                headers=headers
+            )
 
         assert response.status_code == 200
         data = response.json()
@@ -129,7 +170,10 @@ class TestMovieGetByID(TestMovies):
     async def test_get_movie_by_id_not_found(self, test_app):
         movie_id = 9999
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.get(f"/api/v1/movies/{movie_id}")
 
         assert response.status_code == 404
@@ -140,7 +184,10 @@ class TestMovieCreate(TestMovies):
     async def test_create_movies_success(self, test_app):
         headers = await self.create_moderator_token()
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response1 = await client.post(
                 "api/v1/movies/",
                 json={
@@ -185,7 +232,10 @@ class TestMovieCreate(TestMovies):
     async def test_create_movies_existing(self, test_app):
         headers = await self.create_moderator_token()
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response1 = await client.post(
                 "api/v1/movies/",
                 json={
@@ -237,7 +287,10 @@ class TestMovieUpdate(TestMovies):
         movie_id = await self.create_movie()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.patch(
                 f"/api/v1/movies/{movie_id}",
                 json={
@@ -255,7 +308,10 @@ class TestMovieUpdate(TestMovies):
         movie_id = 9999
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.patch(
                 f"/api/v1/movies/{movie_id}",
                 json={
@@ -266,7 +322,9 @@ class TestMovieUpdate(TestMovies):
             )
 
         assert response.status_code == 404
-        assert response.json() == {"detail": f"Movie with ID '{movie_id}' not found."}
+        assert response.json() == {
+            "detail": f"Movie with ID '{movie_id}' not found."
+        }
 
 
 class TestMovieDelete(TestMovies):
@@ -275,7 +333,10 @@ class TestMovieDelete(TestMovies):
         movie_id = await self.create_movie()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.delete(
                 f"/api/v1/movies/{movie_id}",
                 headers=headers
@@ -288,14 +349,19 @@ class TestMovieDelete(TestMovies):
         movie_id = 9999
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.delete(
                 f"/api/v1/movies/{movie_id}",
                 headers=headers
             )
 
         assert response.status_code == 404
-        assert response.json() == {"detail": f"Movie with ID '{movie_id}' not found."}
+        assert response.json() == {
+            "detail": f"Movie with ID '{movie_id}' not found."
+        }
 
     async def test_delete_movie_with_existing_order_returns(self, test_app):
         headers = await self.create_moderator_token()
@@ -327,12 +393,17 @@ class TestMovieDelete(TestMovies):
             await conn.commit()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.delete(
                 f"/api/v1/movies/{movie_id}",
                 headers=headers
             )
 
         assert response.status_code == 400
-        assert response.json() == {"detail": "Cannot delete a movie that has been "
-                                             "purchased by at least one user."}
+        assert response.json() == {
+            "detail": "Cannot delete a movie that has been "
+                      "purchased by at least one user."
+        }

@@ -2,7 +2,6 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from app.models.order import OrderItemModel, OrdersModel
 from app.models.accounts import UserModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Enum as SQLAlchemyEnum

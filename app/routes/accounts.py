@@ -411,7 +411,7 @@ async def reset_password(
     "/token/refresh/",
     response_model=TokenRefreshResponseSchema,
     summary="Refresh access token",
-    description="Refresh the accesss token using a valid refresh token",
+    description="Refresh the access token using a valid refresh token",
     status_code=status.HTTP_200_OK,
 )
 async def refresh_access_token(
@@ -419,6 +419,15 @@ async def refresh_access_token(
         db: AsyncSession = Depends(get_db),
         jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
 ) -> TokenRefreshResponseSchema:
+    stmt = select(RefreshTokenModel).filter_by(token=token_data.refresh_token)
+    result = await db.execute(stmt)
+    refresh_token_record = result.scalars().first()
+    if not refresh_token_record:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not found."
+        )
+
     try:
         decoded_token = jwt_manager.decode_refresh_token(
             token_data.refresh_token
@@ -428,15 +437,6 @@ async def refresh_access_token(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-        )
-
-    stmt = select(RefreshTokenModel).filter_by(token=token_data.refresh_token)
-    result = await db.execute(stmt)
-    refresh_token_record = result.scalars().first()
-    if not refresh_token_record:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token not found."
         )
 
     stmt = select(UserModel).filter_by(id=user_id)
@@ -555,7 +555,7 @@ async def resend_activation(
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found."
         )
 

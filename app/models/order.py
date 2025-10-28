@@ -1,6 +1,5 @@
 import enum
 from datetime import datetime
-from app.models.accounts import UserModel
 from app.models.movies import MovieModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Enum as SQLAlchemyEnum
@@ -8,7 +7,8 @@ from app.models.Base import Base
 from sqlalchemy import (
     ForeignKey,
     func,
-    DateTime, DECIMAL,
+    DateTime,
+    DECIMAL,
 )
 
 
