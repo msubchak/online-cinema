@@ -148,7 +148,7 @@ async def create_genre(
 
 
 @router.patch(
-    "/{genre_id}",
+    "/{genre_id}/",
     summary="Update a genre by ID",
     description="Update one or more fields of "
                 "an existing genre using its unique ID.",
@@ -169,9 +169,6 @@ async def update_genre(
             detail=f"Genre with ID '{genre_id}' not found.",
         )
 
-    for field, value in genre_data.model_dump(exclude_unset=True).items():
-        setattr(genre, field, value)
-
     if genre_data.name:
         existing_stmt = select(GenreModel).where(
             GenreModel.name == genre_data.name,
@@ -183,6 +180,9 @@ async def update_genre(
                 status_code=409,
                 detail=f"A genre named '{genre_data.name}' already exists."
             )
+
+    for field, value in genre_data.model_dump(exclude_unset=True).items():
+        setattr(genre, field, value)
 
     try:
         await db.commit()
@@ -198,7 +198,7 @@ async def update_genre(
 
 
 @router.delete(
-    "/{genre_id}",
+    "/{genre_id}/",
     summary="Delete a genre by ID",
     description="Remove a genre from the database by its unique ID.",
     status_code=status.HTTP_204_NO_CONTENT

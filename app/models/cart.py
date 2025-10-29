@@ -7,7 +7,6 @@ from sqlalchemy import (
     func,
     DateTime,
 )
-from app.models.movies import MovieModel
 
 
 class CartModel(Base):

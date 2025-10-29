@@ -67,7 +67,7 @@ async def get_movie_list(
     # sort
     if not hasattr(MovieModel, sort_by):
         raise HTTPException(
-            status_code=400,
+            status_code=422,
             detail=f"Invalid sort field: {sort_by}"
         )
     column = getattr(MovieModel, sort_by)
@@ -138,7 +138,7 @@ async def get_movie_list(
 
 
 @router.get(
-    "/{movie_id}",
+    "/{movie_id}/",
     response_model=MovieDetailSchema,
     summary="Get movie detail by ID",
     description="Retrieves detailed information about "
