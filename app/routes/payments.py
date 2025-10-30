@@ -77,7 +77,7 @@ async def create_payments(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail="User not found.",
         )
 
     stmt_order = select(OrdersModel).where(
