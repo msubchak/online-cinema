@@ -12,7 +12,7 @@ from app.models import (
     OrdersModel,
     OrderItemModel,
     CartModel,
-    CartItemModel
+    CartItemModel, PaymentModel, PaymentItemModel
 )
 from app.models.Base import Base
 from app.models.accounts import (
@@ -48,7 +48,7 @@ async def clear_all_tables():
             MovieModel, GenreModel,
             StarModel, DirectorModel,
             CertificationModel, CartModel,
-            CartItemModel,
+            CartItemModel, PaymentModel,
         ]:
             await conn.execute(delete(model))
 
