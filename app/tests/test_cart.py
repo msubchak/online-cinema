@@ -22,7 +22,7 @@ pytestmark = pytest.mark.asyncio
 
 
 class TestCart():
-    async def create_moderator_token(self):
+    async def create_user_token(self):
         async with engine.begin() as conn:
             result = await conn.execute(
                 insert(UserModel).values(
@@ -82,7 +82,7 @@ class TestCart():
 
 class TestCartGet(TestCart):
     async def test_get_cart_success(self, test_app):
-        user_id, headers = await self.create_moderator_token()
+        user_id, headers = await self.create_user_token()
         await self.create_cart(user_id)
 
         transport = ASGITransport(app=test_app)
@@ -95,7 +95,7 @@ class TestCartGet(TestCart):
         assert response.status_code == 200
 
     async def test_get_cart_not_found(self, test_app):
-        user_id, headers = await self.create_moderator_token()
+        user_id, headers = await self.create_user_token()
 
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
@@ -110,7 +110,7 @@ class TestCartGet(TestCart):
 
 class TestCartCreate(TestCart):
     async def test_create_cart_success(self, test_app):
-        user_id, headers = await self.create_moderator_token()
+        user_id, headers = await self.create_user_token()
         cart_id = await self.create_cart(user_id)
         movie_id = await self.create_movie()
 
@@ -130,7 +130,7 @@ class TestCartCreate(TestCart):
         }
 
     async def test_create_cart_movie_id_not_found(self, test_app):
-        user_id, headers = await self.create_moderator_token()
+        user_id, headers = await self.create_user_token()
         movie_id = 9999
 
         transport = ASGITransport(app=test_app)
@@ -147,7 +147,7 @@ class TestCartCreate(TestCart):
         assert "detail" in response.json()
 
     async def test_create_cart_movie_already_in_cart(self, test_app):
-        user_id, headers = await self.create_moderator_token()
+        user_id, headers = await self.create_user_token()
         movie_id = await self.create_movie()
 
         async with AsyncSession(engine) as session:
@@ -180,7 +180,7 @@ class TestCartCreate(TestCart):
         }
 
     async def test_create_cart_movie_already_purchased(self, test_app):
-        user_id, headers = await self.create_moderator_token()
+        user_id, headers = await self.create_user_token()
         movie_id = await self.create_movie()
 
         async with AsyncSession(engine) as session:
@@ -216,7 +216,7 @@ class TestCartCreate(TestCart):
 
 class TestCartDelete(TestCart):
     async def test_delete_cart_success(self, test_app):
-        user_id, headers = await self.create_moderator_token()
+        user_id, headers = await self.create_user_token()
         await self.create_cart(user_id)
         movie_id = await self.create_movie()
 
@@ -237,7 +237,7 @@ class TestCartDelete(TestCart):
         assert response.status_code == 204
 
     async def test_delete_cart_not_found(self, test_app):
-        user_id, headers = await self.create_moderator_token()
+        user_id, headers = await self.create_user_token()
         movie_id = await self.create_movie()
 
         transport = ASGITransport(app=test_app)
@@ -256,7 +256,7 @@ class TestCartDelete(TestCart):
         }
 
     async def test_delete_cart_movie_not_found(self, test_app):
-        user_id, headers = await self.create_moderator_token()
+        user_id, headers = await self.create_user_token()
         await self.create_cart(user_id)
         movie_id = 9999
 
