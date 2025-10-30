@@ -117,15 +117,24 @@ class TestOrderCreate(TestOrder):
             await session.commit()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.post("/api/v1/order/", headers=headers)
 
         assert response.status_code == 201
 
-    async def test_create_order_cart_not_found(self, test_app):
+    async def test_create_order_cart_not_found(
+            self,
+            test_app
+    ):
         user_id, headers = await self.create_user_token()
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.post("/api/v1/order/", headers=headers)
 
         assert response.status_code == 404
@@ -136,7 +145,10 @@ class TestOrderCreate(TestOrder):
         await self.create_cart(user_id)
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.post("/api/v1/order/", headers=headers)
 
         assert response.status_code == 404
@@ -153,8 +165,14 @@ class TestOrderCreate(TestOrder):
             await session.commit()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post("/api/v1/order/", headers=headers)
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
+            response = await client.post(
+                "/api/v1/order/",
+                headers=headers
+            )
 
         assert response.status_code == 404
         assert "detail" in response.json()
@@ -182,13 +200,22 @@ class TestOrderCreate(TestOrder):
             session.add(order_item)
             await session.commit()
 
-            cart_item = CartItemModel(cart_id=cart_id, movie_id=movie_id)
+            cart_item = CartItemModel(
+                cart_id=cart_id,
+                movie_id=movie_id
+            )
             session.add(cart_item)
             await session.commit()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post("/api/v1/order/", headers=headers)
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
+            response = await client.post(
+                "/api/v1/order/",
+                headers=headers
+            )
 
         assert response.status_code == 400
         assert "detail" in response.json()
@@ -221,8 +248,14 @@ class TestOrderCreate(TestOrder):
             await session.commit()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post("/api/v1/order/", headers=headers)
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
+            response = await client.post(
+                "/api/v1/order/",
+                headers=headers
+            )
 
         assert response.status_code == 400
         assert "detail" in response.json()
@@ -253,12 +286,18 @@ class TestOrderPay(TestOrder):
             session.add(order_item)
             await session.commit()
 
-            cart_item = CartItemModel(cart_id=cart_id, movie_id=movie_id)
+            cart_item = CartItemModel(
+                cart_id=cart_id,
+                movie_id=movie_id
+            )
             session.add(cart_item)
             await session.commit()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.post(
                 f"/api/v1/order/{order_id}/pay",
                 headers=headers
@@ -272,7 +311,10 @@ class TestOrderPay(TestOrder):
         order_id = 9999
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.post(
                 f"/api/v1/order/{order_id}/pay",
                 headers=headers
@@ -305,12 +347,18 @@ class TestOrderPay(TestOrder):
             session.add(order_item)
             await session.commit()
 
-            cart_item = CartItemModel(cart_id=cart_id, movie_id=movie_id)
+            cart_item = CartItemModel(
+                cart_id=cart_id,
+                movie_id=movie_id
+            )
             session.add(cart_item)
             await session.commit()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.post(
                 f"/api/v1/order/{order_id}/pay",
                 headers=headers
@@ -345,12 +393,18 @@ class TestOrderCancel(TestOrder):
             session.add(order_item)
             await session.commit()
 
-            cart_item = CartItemModel(cart_id=cart_id, movie_id=movie_id)
+            cart_item = CartItemModel(
+                cart_id=cart_id,
+                movie_id=movie_id
+            )
             session.add(cart_item)
             await session.commit()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.post(
                 f"/api/v1/order/{order_id}/cancel",
                 headers=headers
@@ -364,7 +418,10 @@ class TestOrderCancel(TestOrder):
         order_id = 9999
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.post(
                 f"/api/v1/order/{order_id}/cancel",
                 headers=headers
@@ -397,12 +454,18 @@ class TestOrderCancel(TestOrder):
             session.add(order_item)
             await session.commit()
 
-            cart_item = CartItemModel(cart_id=cart_id, movie_id=movie_id)
+            cart_item = CartItemModel(
+                cart_id=cart_id,
+                movie_id=movie_id
+            )
             session.add(cart_item)
             await session.commit()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.post(
                 f"/api/v1/order/{order_id}/cancel",
                 headers=headers
@@ -435,19 +498,27 @@ class TestOrderCancel(TestOrder):
             session.add(order_item)
             await session.commit()
 
-            cart_item = CartItemModel(cart_id=cart_id, movie_id=movie_id)
+            cart_item = CartItemModel(
+                cart_id=cart_id,
+                movie_id=movie_id
+            )
             session.add(cart_item)
             await session.commit()
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
             response = await client.post(
                 f"/api/v1/order/{order_id}/cancel",
                 headers=headers
             )
 
         assert response.status_code == 400
-        assert response.json() == {"detail": "Paid orders cannot be canceled directly"}
+        assert response.json() == {
+            "detail": "Paid orders cannot be canceled directly"
+        }
 
 
 class TestOrderAdminGet(TestOrder):
@@ -465,16 +536,30 @@ class TestOrderAdminGet(TestOrder):
             await session.refresh(order)
 
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/v1/order/admin/", headers=headers)
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
+            response = await client.get(
+                "/api/v1/order/admin/",
+                headers=headers
+            )
 
         assert response.status_code == 200
 
     async def test_order_get_for_admin_not_found(self, test_app):
         admin_id, headers = await self.create_admin_token()
         transport = ASGITransport(app=test_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/v1/order/admin/", headers=headers)
+        async with AsyncClient(
+                transport=transport,
+                base_url="http://test"
+        ) as client:
+            response = await client.get(
+                "/api/v1/order/admin/",
+                headers=headers
+            )
 
         assert response.status_code == 404
-        assert response.json() == {"detail": "No orders found matching the specified filters."}
+        assert response.json() == {
+            "detail": "No orders found matching the specified filters."
+        }
