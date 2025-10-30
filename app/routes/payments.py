@@ -19,8 +19,16 @@ from fastapi import (
 )
 from app.core.database import get_db
 from app.core.config import settings
-from app.models.order import OrderItemModel, OrdersModel, StatusEnum
-from app.models.payments import PaymentModel, PaymentItemModel
+from app.models.order import (
+    OrderItemModel,
+    OrdersModel,
+    StatusEnum as OrderStatusEnum
+)
+from app.models.payments import (
+    PaymentModel,
+    PaymentItemModel,
+    StatusEnum as PaymentStatusEnum
+)
 from app.schemas.payments import (
     PaymentRequestSchema,
     PaymentResponseSchema,
@@ -36,7 +44,7 @@ stripe.webhook_secret = settings.STRIPE_WEBHOOK_SECRET
 
 async def update_payment_status(
         db: AsyncSession,
-        status: StatusEnum,
+        status: PaymentStatusEnum,
         external_id: str
 ):
     stmt = select(PaymentModel).where(
@@ -85,7 +93,7 @@ async def create_payments(
             detail="Order not found",
         )
 
-    if order.status == StatusEnum.PAID:
+    if order.status == OrderStatusEnum.PAID:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Payment is already paid",
@@ -129,7 +137,7 @@ async def create_payments(
         order_id=order.id,
         amount=total_amount,
         external_payment_id=intent.id,
-        status=StatusEnum.SUCCESSFUL
+        status=PaymentStatusEnum.SUCCESSFUL
     )
 
     payment.items = [
@@ -191,7 +199,7 @@ async def stripe_webhook(
     if event["type"] == "payment_intent.succeeded":
         await update_payment_status(
             db,
-            StatusEnum.SUCCESSFUL,
+            PaymentStatusEnum.SUCCESSFUL,
             event["data"]["object"]["id"]
         )
         stmt = select(PaymentModel).where(
@@ -214,14 +222,14 @@ async def stripe_webhook(
     elif event["type"] == "payment_intent.payment_failed":
         await update_payment_status(
             db,
-            StatusEnum.CANCELED,
+            PaymentStatusEnum.CANCELED,
             event["data"]["object"]["id"]
         )
 
     elif event["type"] == "charge.refunded":
         await (update_payment_status(
             db,
-            StatusEnum.REFUNDED,
+            PaymentStatusEnum.REFUNDED,
             event["data"]["object"]["id"]
         ))
 
@@ -239,7 +247,7 @@ async def stripe_webhook(
 async def get_payments_by_user(
         current_user: UserModel = Depends(get_current_user),
         db: AsyncSession = Depends(get_db),
-        pay_status: Optional[StatusEnum] = Query(
+        pay_status: Optional[PaymentStatusEnum] = Query(
             None,
             description="Filter by payment status"
         ),
@@ -286,7 +294,7 @@ async def get_payments_by_admin(
         db: AsyncSession = Depends(get_db),
         admin_user: UserModel = Depends(admin_required),
         user_id: Optional[int] = Query(None, description="Filter by user id"),
-        pay_status: Optional[StatusEnum] = Query(
+        pay_status: Optional[PaymentStatusEnum] = Query(
             None,
             description="Filter by payment status"
         ),
