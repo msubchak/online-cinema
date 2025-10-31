@@ -1,0 +1,15 @@
+<html>
+<head><title>Payment Successful</title></head>
+<body style="font-family: Arial, sans-serif;">
+  <div style="max-width:480px;margin:40px auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
+    <h2 style="color:#4CAF50;">Payment Successful!</h2>
+    <p>Hello {{ email }},</p>
+    <p>Your payment has been processed successfully.</p>
+    {% if order_link %}
+    <p>You can view your order details here:</p>
+    <p><a href="{{ order_link }}" style="color:#4CAF50;">View Order</a></p>
+    {% endif %}
+    <p>Thank you for your purchase.<br>The Mate Team</p>
+  </div>
+</body>
+</html>
