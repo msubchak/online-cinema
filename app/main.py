@@ -12,6 +12,9 @@ from app.routes import (
     directors_router,
 )
 from app.security.auth_dependencies import get_current_user
+from sqlalchemy import select, insert
+from app.models.accounts import UserGroupModel, UserGroupEnum
+from app.core.database import engine
 
 app = FastAPI(
     title="Online cinema",
@@ -38,6 +41,23 @@ async def get_protected_redoc(current_user=Depends(get_current_user)):
         openapi_url="/openapi.json",
         title="Protected ReDoc"
     )
+
+
+async def ensure_default_group():
+    async with engine.begin() as conn:
+        result = await conn.execute(
+            select(UserGroupModel).where(UserGroupModel.name == UserGroupEnum.USER)
+        )
+        if not result.scalar():
+            await conn.execute(
+                insert(UserGroupModel).values(name=UserGroupEnum.USER)
+            )
+            await conn.commit()
+
+
+@app.on_event("startup")
+async def on_startup():
+    await ensure_default_group()
 
 
 api_version_prefix = "/api/v1"
