@@ -12,7 +12,8 @@ from app.models import (
     OrdersModel,
     OrderItemModel,
     CartModel,
-    CartItemModel, PaymentModel, PaymentItemModel
+    CartItemModel,
+    PaymentModel
 )
 from app.models.Base import Base
 from app.models.accounts import (

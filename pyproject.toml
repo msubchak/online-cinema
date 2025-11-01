@@ -70,7 +70,10 @@ dependencies = [
     "vine (==5.1.0)",
     "watchfiles (==1.1.0)",
     "wcwidth (==0.2.14)",
-    "websockets (==15.0.1)"
+    "websockets (==15.0.1)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "pytest-asyncio (>=1.2.0,<2.0.0)",
+    "psycopg2-binary (>=2.9.11,<3.0.0)"
 ]
 
 
