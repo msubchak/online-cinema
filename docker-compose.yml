@@ -1,0 +1,38 @@
+services:
+  cinema:
+    build: .
+    container_name: cinema
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/usr/app
+    env_file:
+      - .env
+    depends_on:
+      - mailhog
+      - redis
+      - celery
+
+  mailhog:
+    image: mailhog/mailhog
+    restart: always
+    container_name: mailhog_cinema
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  redis:
+    image: redis:latest
+    container_name: redis_cinema
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    container_name: celery_cinema
+    command: celery -A app.celery_app.celery_app worker -l info
+    env_file:
+      - .env
+    depends_on:
+      - redis
