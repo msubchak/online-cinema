@@ -92,7 +92,7 @@ class TestDirectorsGetById(TestDirectors):
             response = await client.get(f"/api/v1/directors/{director_id}")
 
         assert response.status_code == 404
-        data = "detail" in response.json()
+        assert "detail" in response.json()
 
 
 class TestDirectorsCreate(TestDirectors):

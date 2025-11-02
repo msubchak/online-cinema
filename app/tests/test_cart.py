@@ -111,7 +111,7 @@ class TestCartGet(TestCart):
 class TestCartCreate(TestCart):
     async def test_create_cart_success(self, test_app):
         user_id, headers = await self.create_user_token()
-        cart_id = await self.create_cart(user_id)
+        await self.create_cart(user_id)
         movie_id = await self.create_movie()
 
         transport = ASGITransport(app=test_app)

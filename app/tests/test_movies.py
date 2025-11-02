@@ -346,7 +346,6 @@ class TestMovieDelete(TestMovies):
     async def test_delete_movie_with_existing_order_returns(self, test_app):
         headers = await self.create_moderator_token()
         movie_id = await self.create_movie()
-        hashed = hash_password("Password123!")
         async with engine.begin() as conn:
             result = await conn.execute(
                 insert(UserModel).values(

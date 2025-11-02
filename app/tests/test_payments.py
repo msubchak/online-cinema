@@ -196,7 +196,7 @@ class TestPaymentsCreate(TestPayments):
         mock_create.return_value = type("obj", (), {"id": "pi_test_123"})
         user_id, headers = await self.create_user_token()
         order_id = 9999
-        movie_id = await self.create_movie()
+        await self.create_movie()
 
         transport = ASGITransport(app=test_app)
         async with AsyncClient(
