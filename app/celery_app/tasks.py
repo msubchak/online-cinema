@@ -6,7 +6,7 @@ from app.models.accounts import (
     ActivationTokenModel,
     PasswordResetTokenModel
 )
-from celery_app import celery_app
+from app.celery_app.celery_app import celery_app
 import asyncio
 
 
