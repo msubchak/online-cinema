@@ -30,10 +30,6 @@ from app.models.accounts import (
 async def test_app():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        await conn.execute(insert(
-            UserGroupModel
-        ).values(name=UserGroupEnum.USER))
-        await conn.commit()
     yield app
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

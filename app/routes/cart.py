@@ -1,6 +1,5 @@
 from sqlalchemy import select
 
-from app.core.config.email_utils import get_jwt_auth_manager
 from app.models import OrdersModel, OrderItemModel
 from app.models.accounts import UserModel
 from app.models.cart import CartModel, CartItemModel
