@@ -8,9 +8,14 @@ from pydantic_settings import BaseSettings
 
 load_dotenv()
 
+
 class BaseAppSettings(BaseSettings):
-    BASE_DIR: Path = Path(__file__).parent.parent
-    PATH_TO_DB: str = str(BASE_DIR / "database" / "source" / "online_cinema.db")
+    BASE_DIR: Path = Path(
+        __file__
+    ).parent.parent
+    PATH_TO_DB: str = str(
+        BASE_DIR / "database" / "source" / "online_cinema.db"
+    )
     PATH_TO_MOVIES_CSV: str = str(
         BASE_DIR / "database" / "seed_data" / "imdb_movies.csv"
     )
@@ -34,7 +39,7 @@ class BaseAppSettings(BaseSettings):
         "test_password"
     )
     EMAIL_USE_TLS: bool = os.getenv("EMAIL_USE_TLS", "False").lower() == "true"
-    MAILHOG_API_PORT: int = os.getenv("MAILHOG_API_PORT", 8025)
+    MAILHOG_API_PORT: int = int (os.getenv("MAILHOG_API_PORT", 8025))
 
 
 class Settings(BaseAppSettings):

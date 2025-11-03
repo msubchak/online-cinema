@@ -34,3 +34,11 @@ class EmailSenderInterface(ABC):
             login_link: str
     ) -> None:
         pass
+
+    @abstractmethod
+    async def send_success_payment(
+            self,
+            email: str,
+            order_link: str
+    ) -> None:
+        pass
