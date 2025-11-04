@@ -22,26 +22,26 @@ app = FastAPI(
     version="1.0",
     description="API for managing movies, "
                 "users, and orders in an online cinema.",
-    docs_url=None,
-    redoc_url=None
+    #docs_url=None,
+    #   redoc_url=None
 )
 
 
-@app.get("/docs", include_in_schema=False)
-async def get_protected_docs(current_user=Depends(get_current_user)):
-    return get_swagger_ui_html(
-        openapi_url="/openapi.json",
-        title="Protected Swagger UI",
-        swagger_ui_parameters={"persistAuthorization": True},
-    )
+#@app.get("/docs", include_in_schema=False)
+#async def get_protected_docs(current_user=Depends(get_current_user)):
+    #    return get_swagger_ui_html(
+#       openapi_url="/openapi.json",
+#       title="Protected Swagger UI",
+#       swagger_ui_parameters={"persistAuthorization": True},
+#   )
 
 
-@app.get("/redoc", include_in_schema=False)
-async def get_protected_redoc(current_user=Depends(get_current_user)):
-    return get_redoc_html(
-        openapi_url="/openapi.json",
-        title="Protected ReDoc"
-    )
+#@app.get("/redoc", include_in_schema=False)
+#async def get_protected_redoc(current_user=Depends(get_current_user)):
+    #return get_redoc_html(
+    #        openapi_url="/openapi.json",
+    #        title="Protected ReDoc"
+#    )
 
 
 async def ensure_default_group():
