@@ -7,6 +7,19 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 from app.models.Base import Base
+from app.models.accounts import (
+    UserGroupModel,
+    UserModel,
+    UserProfileModel,
+    TokenBaseModel,
+    ActivationTokenModel,
+    PasswordResetTokenModel,
+RefreshTokenModel
+)
+from app.models.cart import CartModel, CartItemModel
+from app.models.movies import GenreModel, StarModel, DirectorModel, CertificationModel, MovieModel
+from app.models.order import OrdersModel, OrderItemModel
+from app.models.payments import PaymentModel, PaymentItemModel
 
 config = context.config
 

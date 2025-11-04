@@ -39,7 +39,7 @@ class BaseAppSettings(BaseSettings):
         "test_password"
     )
     EMAIL_USE_TLS: bool = os.getenv("EMAIL_USE_TLS", "False").lower() == "true"
-    MAILHOG_API_PORT: int = int (os.getenv("MAILHOG_API_PORT", 8025))
+    MAILHOG_API_PORT: int = int(os.getenv("MAILHOG_API_PORT", 8025))
 
 
 class Settings(BaseAppSettings):
