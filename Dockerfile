@@ -14,9 +14,12 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /usr/app
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-root
+RUN poetry run pip install pytest flake8
 
 COPY . .
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+RUN mkdir -p /usr/app/database/source
+
+CMD ["bash", "-c", "poetry run alembic upgrade head && poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000"]

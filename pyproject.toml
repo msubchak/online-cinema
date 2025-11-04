@@ -3,7 +3,7 @@ name = "fastapi-online-cinema"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "Maksym Subchak",email = "donjkee2@gmail.com"}
+    {name = "Maksym Subchak",email = "subchak.maksym@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.11,<4.0"
@@ -82,3 +82,16 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 package-mode = false
+
+[dependency-groups]
+dev = [
+    "mypy (>=1.18.2,<2.0.0)",
+    "types-passlib (>=1.7.7.20250602,<2.0.0.0)",
+    "types-python-jose (>=3.5.0.20250531,<4.0.0.0)"
+]
+
+[tool.mypy]
+ignore_missing_imports = true
+disallow_untyped_defs = false
+warn_unused_ignores = false
+follow_imports = "skip"

@@ -1,8 +1,8 @@
-"""init
+"""init tables
 
-Revision ID: 7db1c6842be1
-Revises: 
-Create Date: 2025-10-31 20:40:02.143528
+Revision ID: 73c71e445006
+Revises: 8e0a7b8235e3
+Create Date: 2025-11-02 20:18:00.009972
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '7db1c6842be1'
-down_revision: Union[str, Sequence[str], None] = None
+revision: str = '73c71e445006'
+down_revision: Union[str, Sequence[str], None] = '8e0a7b8235e3'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -79,8 +79,8 @@ def upgrade() -> None:
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('hashed_password', sa.String(length=255), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
     sa.Column('group_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['group_id'], ['user_groups.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
@@ -128,7 +128,7 @@ def upgrade() -> None:
     op.create_table('orders',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
     sa.Column('status', sa.Enum('PENDING', 'PAID', 'CANCELED', name='statusenum'), nullable=False),
     sa.Column('total_amount', sa.DECIMAL(precision=10, scale=2), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -170,7 +170,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('cart_id', sa.Integer(), nullable=False),
     sa.Column('movie_id', sa.Integer(), nullable=False),
-    sa.Column('added_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('added_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
     sa.ForeignKeyConstraint(['cart_id'], ['carts.id'], ),
     sa.ForeignKeyConstraint(['movie_id'], ['movies.id'], ),
     sa.PrimaryKeyConstraint('id'),
@@ -190,7 +190,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('order_id', sa.Integer(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
     sa.Column('status', sa.Enum('SUCCESSFUL', 'CANCELED', 'REFUNDED', name='statusenum'), nullable=False),
     sa.Column('amount', sa.DECIMAL(precision=10, scale=2), nullable=False),
     sa.Column('external_payment_id', sa.String(), nullable=True),
