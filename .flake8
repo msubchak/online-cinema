@@ -1,6 +1,7 @@
 [flake8]
 extend-ignore =
     F841
+    F821
     F401
     ANN001
     ANN101

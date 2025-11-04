@@ -1,9 +1,9 @@
 .venv
-.idea/
+.idea
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.sqlite3
 *.log
-.env
+*.env
