@@ -25,13 +25,15 @@ app = FastAPI(
 
 async def ensure_default_group():
     async with engine.begin() as conn:
-        result = await conn.execute(
-            select(UserGroupModel)
-            .where(UserGroupModel.name == UserGroupEnum.USER)
-        )
-        if not result.scalar():
+        existing = await conn.execute(select(UserGroupModel.name))
+        existing_names = {row[0] for row in existing.fetchall()}
+        required = {UserGroupEnum.USER, UserGroupEnum.ADMIN, UserGroupEnum.MODERATOR}
+        missing = required - existing_names
+
+        if missing:
             await conn.execute(
-                insert(UserGroupModel).values(name=UserGroupEnum.USER)
+                insert(UserGroupModel),
+                [{"name": name} for name in missing]
             )
 
 
