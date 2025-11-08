@@ -24,6 +24,14 @@ jobs:
           pip install poetry
           poetry install --with dev
 
+      - name: Set environment variables
+        run: |
+          echo "DATABASE_URL=sqlite+aiosqlite:///./test.db" >> $GITHUB_ENV
+          echo "SECRET_KEY=testsecret" >> $GITHUB_ENV
+          echo "EMAIL_HOST=mailhog" >> $GITHUB_ENV
+          echo "EMAIL_PORT=1025" >> $GITHUB_ENV
+          echo "EMAIL_USE_TLS=False" >> $GITHUB_ENV
+
       - name: Run flake8
         run: |
           poetry run flake8 app
