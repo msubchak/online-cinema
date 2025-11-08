@@ -1,0 +1,59 @@
+from sqlalchemy.orm import relationship, Mapped, mapped_column
+from datetime import datetime
+from app.models.Base import Base
+from sqlalchemy import (
+    ForeignKey,
+    UniqueConstraint,
+    func,
+    DateTime,
+)
+
+
+class CartModel(Base):
+    __tablename__ = "carts"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+        unique=True
+    )
+
+    items: Mapped[list["CartItemModel"]] = relationship(
+        "CartItemModel",
+        back_populates="cart",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+
+class CartItemModel(Base):
+    __tablename__ = "cart_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    cart_id: Mapped[int] = mapped_column(
+        ForeignKey("carts.id"),
+        nullable=False
+    )
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id"),
+        nullable=False
+    )
+    added_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+    cart: Mapped["CartModel"] = relationship(
+        "CartModel",
+        back_populates="items",
+        lazy="selectin",
+    )
+    movie: Mapped["MovieModel"] = relationship(
+        "MovieModel",
+        lazy="selectin",
+    )
+
+    __table_args__ = (
+        UniqueConstraint("cart_id", "movie_id", name="unique_cart_movie"),
+    )

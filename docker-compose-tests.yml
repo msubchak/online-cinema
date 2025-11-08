@@ -1,0 +1,29 @@
+services:
+  flake8_linter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /usr/app
+    volumes:
+      - .:/usr/app
+    command: flake8 .
+
+  myapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: myapp_container
+    working_dir: /usr/app
+    volumes:
+      - .:/usr/app
+    command: myapp
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tests_container
+    working_dir: /usr/app
+    volumes:
+      - .:/usr/app
+    command: pytest

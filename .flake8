@@ -1,0 +1,24 @@
+[flake8]
+extend-ignore =
+    F841
+    F821
+    F401
+    ANN001
+    ANN101
+    ANN102
+    ANN201
+    ANN204
+    ANN206
+    VNE003
+
+inline-quotes = "
+multiline-quotes = """
+docstring-quotes = """
+exclude =
+    .git,
+    __pycache__,
+    env,
+    venv,
+    .venv,
+    migrations,
+    alembic
