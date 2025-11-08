@@ -68,14 +68,93 @@ API розгорнуто у **Docker-контейнерах** з **Nginx-про�
 ---
 
 ## 🧩 Основні ендпоінти
+### 👤 Accounts (`/api/v1/accounts/`)
+| Метод | Ендпоінт | Опис |
+|--------|-----------|------|
+| `POST` | `/register/` | Реєстрація нового користувача |
+| `POST` | `/activate/` | Активація користувача через email |
+| `POST` | `/login/` | Авторизація користувача |
+| `POST` | `/logout/` | Вихід користувача |
+| `POST` | `/change-password/` | Зміна пароля користувача |
+| `POST` | `/reset-password/request/` | Запит на скидання пароля |
+| `POST` | `/reset-password/complete/` | Завершення скидання пароля |
+| `POST` | `/token/refresh/` | Оновлення JWT токена |
+| `POST` | `/admin/change-user-group/` | Зміна ролі користувача *(ADMIN)* |
+| `POST` | `/admin/activate-user/` | Активувати користувача *(ADMIN)* |
+| `POST` | `/resend-activation/` | Повторне надсилання листа активації |
 
-| Endpoint | Опис |
-|-----------|------|
-| `/api/v1/accounts/` | Реєстрація, логін, користувачі |
-| `/api/v1/movies/` | Фільми, жанри, актори, режисери |
-| `/api/v1/cart/` | Кошик |
-| `/api/v1/order/` | Замовлення |
-| `/api/v1/payment/` | Оплати |
+---
+
+### 🎞 Movies (`/api/v1/movies/`)
+| Метод | Ендпоінт | Опис |
+|--------|-----------|------|
+| `GET` | `/` | Отримати список усіх фільмів |
+| `POST` | `/` | Створити новий фільм *(MODERATOR/ADMIN)* |
+| `GET` | `/{movie_id}/` | Отримати деталі фільму за ID |
+| `PATCH` | `/{movie_id}` | Оновити фільм *(MODERATOR/ADMIN)* |
+| `DELETE` | `/{movie_id}` | Видалити фільм *(ADMIN)* |
+---
+
+### 🧩 Genres (`/api/v1/genres/`)
+| Метод | Ендпоінт | Опис |
+|--------|-----------|------|
+| `GET` | `/` | Отримати пагінований список жанрів |
+| `POST` | `/` | Створити новий жанр |
+| `GET` | `/{genre_id}/` | Отримати деталі жанру за ID |
+| `PATCH` | `/{genre_id}/` | Оновити жанр |
+| `DELETE` | `/{genre_id}/` | Видалити жанр |
+---
+
+---
+
+### 🌟 Stars (`/api/v1/stars/`)
+| Метод | Ендпоінт | Опис |
+|--------|-----------|------|
+| `GET` | `/` | Отримати пагінований список акторів |
+| `POST` | `/` | Створити нового актора |
+| `GET` | `/{star_id}/` | Отримати деталі актора за ID |
+| `PATCH` | `/{star_id}/` | Оновити дані актора |
+| `DELETE` | `/{star_id}/` | Видалити актора |
+
+---
+
+### 🎬 Directors (`/api/v1/directors/`)
+| Метод | Ендпоінт | Опис |
+|--------|-----------|------|
+| `GET` | `/` | Отримати список усіх режисерів |
+| `POST` | `/` | Створити нового режисера |
+| `GET` | `/{director_id}/` | Отримати режисера за ID |
+| `PATCH` | `/{director_id}/` | Оновити дані режисера |
+| `DELETE` | `/{director_id}/` | Видалити режисера |
+
+---
+
+### 🛒 Cart (`/api/v1/cart/`)
+| Метод | Ендпоінт | Опис |
+|--------|-----------|------|
+| `GET` | `/` | Отримати кошик поточного користувача |
+| `POST` | `/` | Додати фільм у кошик |
+| `DELETE` | `/{movie_id}` | Видалити фільм із кошика |
+
+---
+
+### 🧾 Orders (`/api/v1/order/`)
+| Метод | Ендпоінт | Опис |
+|--------|-----------|------|
+| `POST` | `/` | Створити замовлення з кошика |
+| `POST` | `/{order_id}/pay` | Оплатити замовлення |
+| `POST` | `/{order_id}/cancel` | Скасувати замовлення |
+| `GET` | `/admin/` | Переглянути всі замовлення користувачів *(ADMIN)* |
+
+---
+
+### 💳 Payments (`/api/v1/payment/`)
+| Метод | Ендпоінт | Опис |
+|--------|-----------|------|
+| `POST` | `/` | Створити платіж |
+| `GET` | `/` | Отримати платежі поточного користувача |
+| `POST` | `/webhook` | Stripe Webhook для підтвердження платежу |
+| `GET` | `/admin/` | Переглянути всі платежі *(ADMIN)* |
 
 
 ## 📦 Сервіси в Docker
@@ -92,73 +171,31 @@ API розгорнуто у **Docker-контейнерах** з **Nginx-про�
 ```
 fastapi-online-cinema/
 ├── .github/   # CI/CD конфігурації GitHub Actions
-│ └── workflows/
-│ └── ci.yml
+│   └── workflows/
+│       └── ci.yml
 ├── alembic/   # Міграції бази даних
-│ ├── versions/
-│ ├── env.py
-│ ├── script.py.mako
-│ └── README
+│   ├── versions/
+│   ├── env.py
+│   ├── script.py.mako
+│   └── README
 ├── app/    # Основна логіка застосунку
-│ ├── celery_app/ # Налаштування та задачі Celery
-│ │ ├── celery_app.py
-│ │ └── tasks.py
-│ ├── core/ # Конфігурації, валідації, винятки, база даних
-│ │ ├── config/
-│ │ ├── exceptions/
-│ │ ├── notifications/
-│ │ └── validators/
-│ │ └── database.py
-│ ├── models/ # SQLAlchemy ORM моделі
-│ │ ├── accounts.py
-│ │ ├── Base.py
-│ │ ├── cart.py
-│ │ ├── movies.py
-│ │ ├── order.py
-│ │ └── payments.py
-│ ├── routes/ # Маршрути FastAPI
-│ │ ├── accounts.py
-│ │ ├── cart.py
-│ │ ├── directors.py
-│ │ ├── genres.py
-│ │ ├── movies.py
-│ │ ├── order.py
-│ │ ├── payments.py
-│ │ └── stars.py
-│ ├── schemas/ # Pydantic-схеми
-│ │ ├── accounts.py
-│ │ ├── cart.py
-│ │ ├── directors.py
-│ │ ├── genres.py
-│ │ ├── movies.py
-│ │ ├── order.py
-│ │ ├── payments.py
-│ │ └── stars.py
-│ ├── security/ # Аутентифікація та токени
-│ │ ├── auth_dependencies.py
-│ │ ├── interfaces.py
-│ │ ├── password.py
-│ │ ├── token_manager.py
-│ │ └── utils.py
-│ ├── services/
-│ ├── tests/ # Pytest-тести
-│ │ ├── conftest.py    
-│ │ ├── test_accounts.py
-│ │ ├── test_cart.py
-│ │ ├── test_directors.py   
-│ │ ├── test_genres.py 
-│ │ ├── test_movies.py
-│ │ ├── test_order.py
-│ │ ├── test_payments.py
-│ │ └── test_stars.py 
-│ └── main.py # Основний модуль застосунку
-├── docker-compose.yml # Docker-композиція для локального запуску
-├── docker-compose-prod.yml # Docker-конфіг для продакшену
-├── Dockerfile # Білд образу FastAPI
-├── nginx.conf # Конфігурація Nginx-проксі
-├── alembic.ini # Налаштування Alembic
-├── pyproject.toml # Poetry + залежності
-├── poetry.lock # Фіксація версій залежностей
-├── .env-example  #Приклад змінних середовищ (шаблон для .env)
-└── README.md # Документація проєкту
+│   ├── celery_app/       # Налаштування та задачі Celery
+│   ├── core/             # Конфігурації, валідації, винятки, база даних
+│   ├── models/           # SQLAlchemy ORM моделі
+│   ├── routes/           # Маршрути FastAPI
+│   ├── schemas/          # Pydantic-схеми
+│   ├── security/         # Аутентифікація та токени
+│   ├── services/         # Бізнес-логіка
+│   ├── tests/            # Pytest-тести
+│   └── main.py           # Основний модуль застосунку
+├── docker-compose.yml        # Docker-композиція для локального запуску
+├── docker-compose-prod.yml   # Docker-конфіг для продакшену
+├── Dockerfile                # Білд образу FastAPI
+├── nginx.conf                # Конфігурація Nginx-проксі
+├── alembic.ini               # Налаштування Alembic
+├── pyproject.toml            # Poetry + залежності
+├── poetry.lock               # Фіксація версій залежностей
+├── .env-example              # Приклад змінних середовищ (шаблон для .env)
+└── README.md                 # Документація проєкту
+
 ```
