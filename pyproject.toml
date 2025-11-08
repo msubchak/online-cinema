@@ -83,15 +83,15 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 package-mode = false
 
-[dependency-groups]
-dev = [
-    "mypy (>=1.18.2,<2.0.0)",
-    "types-passlib (>=1.7.7.20250602,<2.0.0.0)",
-    "types-python-jose (>=3.5.0.20250531,<4.0.0.0)"
-]
 
 [tool.mypy]
 ignore_missing_imports = true
 disallow_untyped_defs = false
 warn_unused_ignores = false
 follow_imports = "skip"
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^7.1.0"
+mypy = "^1.10.0"
+pytest = "^8.2.0"
+pytest-cov = "^5.0.0"
